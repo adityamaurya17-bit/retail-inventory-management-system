@@ -1111,6 +1111,183 @@ export class ModalManager {
       });
     });
   }
+
+  // --- Authentication & Login Modal ---
+  openLoginModal() {
+    const content = `
+      <div class="modal-header">
+        <div class="flex-align-center gap-3">
+          <div class="login-brand-icon">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <div>
+            <h3>RIMS Enterprise Sign In</h3>
+            <p class="text-muted text-sm">Authenticate your session to access authorized inventory operations</p>
+          </div>
+        </div>
+        <button type="button" class="btn-icon btn-modal-close">&times;</button>
+      </div>
+
+      <div class="login-modal-body">
+        <!-- Quick Role Selector Cards -->
+        <div class="quick-login-section">
+          <label class="section-micro-label">Quick Sign In as Pre-Configured Role:</label>
+          <div class="quick-roles-grid">
+            <button type="button" class="quick-role-btn active-admin" data-email="admin@retailhub.in" data-role="Admin">
+              <span class="role-icon">👑</span>
+              <div class="role-text">
+                <span class="role-title">System Admin</span>
+                <span class="role-user">Aarav Sharma</span>
+              </div>
+            </button>
+            <button type="button" class="quick-role-btn" data-email="inventory@retailhub.in" data-role="Inventory Manager">
+              <span class="role-icon">📦</span>
+              <div class="role-text">
+                <span class="role-title">Inventory Mgr</span>
+                <span class="role-user">Priya Patel</span>
+              </div>
+            </button>
+            <button type="button" class="quick-role-btn" data-email="sales@retailhub.in" data-role="Sales Manager">
+              <span class="role-icon">💼</span>
+              <div class="role-text">
+                <span class="role-title">Sales Lead</span>
+                <span class="role-user">Rohan Verma</span>
+              </div>
+            </button>
+            <button type="button" class="quick-role-btn" data-email="supplier@retailhub.in" data-role="Supplier Manager">
+              <span class="role-icon">🚚</span>
+              <div class="role-text">
+                <span class="role-title">Supplier Mgr</span>
+                <span class="role-user">Ananya Iyer</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-divider">
+          <span>OR ENTER CREDENTIALS</span>
+        </div>
+
+        <form id="form-login" class="modal-form">
+          <div id="login-error-alert" class="alert-box alert-danger" style="display: none;">
+            <i data-lucide="alert-circle"></i>
+            <span id="login-error-text">Invalid email or password</span>
+          </div>
+
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <div class="input-with-icon">
+              <i data-lucide="mail"></i>
+              <input type="email" id="login-email" name="email" required placeholder="admin@retailhub.in" value="admin@retailhub.in" autocomplete="username" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="input-with-icon">
+              <i data-lucide="lock"></i>
+              <input type="password" id="login-password" name="password" required placeholder="••••••••" value="Password123!" autocomplete="current-password" />
+              <button type="button" id="btn-toggle-pwd" class="btn-icon-inside" title="Show/Hide Password">
+                <i data-lucide="eye" id="pwd-icon"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-features-info">
+            <div class="feature-item">
+              <i data-lucide="check-circle-2"></i>
+              <span>JWT Bearer Token Authentication</span>
+            </div>
+            <div class="feature-item">
+              <i data-lucide="check-circle-2"></i>
+              <span>PostgreSQL 18 RBAC Authorization</span>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost btn-modal-close">Cancel</button>
+            <button type="submit" id="btn-submit-login" class="btn btn-primary">
+              <i data-lucide="log-in"></i>
+              <span id="submit-login-text">Sign In as Admin</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    this.open(content, (dialog) => {
+      const form = dialog.querySelector("#form-login");
+      const emailInput = dialog.querySelector("#login-email");
+      const pwdInput = dialog.querySelector("#login-password");
+      const togglePwd = dialog.querySelector("#btn-toggle-pwd");
+      const pwdIcon = dialog.querySelector("#pwd-icon");
+      const errorBox = dialog.querySelector("#login-error-alert");
+      const errorText = dialog.querySelector("#login-error-text");
+      const submitBtn = dialog.querySelector("#btn-submit-login");
+      const submitText = dialog.querySelector("#submit-login-text");
+      const quickBtns = dialog.querySelectorAll(".quick-role-btn");
+
+      // Password visibility toggle
+      if (togglePwd && pwdInput) {
+        togglePwd.addEventListener("click", () => {
+          const isPwd = pwdInput.type === "password";
+          pwdInput.type = isPwd ? "text" : "password";
+          if (pwdIcon) {
+            pwdIcon.setAttribute("data-lucide", isPwd ? "eye-off" : "eye");
+            if (window.lucide) window.lucide.createIcons({ root: togglePwd });
+          }
+        });
+      }
+
+      // Quick role autofill
+      quickBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          quickBtns.forEach((b) => b.classList.remove("active-admin"));
+          btn.classList.add("active-admin");
+          const email = btn.dataset.email;
+          const role = btn.dataset.role;
+          emailInput.value = email;
+          pwdInput.value = "Password123!";
+          submitText.textContent = `Sign In as ${role}`;
+        });
+      });
+
+      emailInput.addEventListener("input", () => {
+        submitText.textContent = "Sign In";
+      });
+
+      // Submit handler
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorBox.style.display = "none";
+        submitBtn.disabled = true;
+        submitText.textContent = "Authenticating...";
+
+        const email = emailInput.value.trim();
+        const password = pwdInput.value;
+
+        const result = await store.login(email, password);
+
+        if (result.success) {
+          this.close();
+          toast.success(`Welcome back, ${result.user.name}! Authenticated as [${result.user.role}].`);
+          try {
+            confetti({
+              particleCount: 40,
+              spread: 60,
+              origin: { y: 0.8 }
+            });
+          } catch (err) {}
+        } else {
+          errorBox.style.display = "flex";
+          errorText.textContent = result.message || "Invalid credentials.";
+          submitBtn.disabled = false;
+          submitText.textContent = "Sign In";
+          if (window.lucide) window.lucide.createIcons({ root: errorBox });
+        }
+      });
+    });
+  }
 }
 
 export const modals = new ModalManager();

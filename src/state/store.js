@@ -651,6 +651,49 @@ class Store {
     this.notify();
     return this.currentUser;
   }
+
+  async login(email, password) {
+    try {
+      if (this.dbConnected) {
+        const res = await api.login(email.trim(), password);
+        if (res.success && res.data) {
+          this.currentUser = res.data.user;
+          this.logAudit("USER_LOGIN", this.currentUser.name, `Logged in successfully as [${this.currentUser.role}] (${this.currentUser.email}).`);
+          await this.syncWithBackend();
+          this.notify();
+          return { success: true, user: this.currentUser };
+        } else {
+          return { success: false, message: res.message || "Invalid credentials." };
+        }
+      } else {
+        // Fallback local matching
+        const demoAccounts = {
+          "admin@retailhub.in": { id: 1, name: "Aarav Sharma", role: "Admin" },
+          "inventory@retailhub.in": { id: 2, name: "Priya Patel", role: "Inventory Manager" },
+          "sales@retailhub.in": { id: 3, name: "Rohan Verma", role: "Sales Manager" },
+          "supplier@retailhub.in": { id: 4, name: "Ananya Iyer", role: "Supplier Manager" }
+        };
+        const acc = demoAccounts[email.toLowerCase().trim()];
+        if (acc && password === "Password123!") {
+          this.currentUser = { ...acc, email: email.toLowerCase().trim() };
+          this.logAudit("USER_LOGIN", this.currentUser.name, `Logged in (offline mode) as [${this.currentUser.role}].`);
+          this.notify();
+          return { success: true, user: this.currentUser };
+        }
+        return { success: false, message: "Invalid email or password. Use demo password 'Password123!'." };
+      }
+    } catch (err) {
+      return { success: false, message: err.message || "Login request failed." };
+    }
+  }
+
+  logout() {
+    const prevUser = this.currentUser ? this.currentUser.name : "User";
+    api.logout();
+    this.currentUser = null;
+    this.logAudit("USER_LOGOUT", prevUser, "User logged out of RIMS session.");
+    this.notify();
+  }
 }
 
 export const store = new Store();

@@ -69,11 +69,26 @@ export function renderNavbar(currentTab, onTabChange) {
           <span class="desktop-only">${dbStatus.connected ? "PostgreSQL 18" : "DB Offline"}</span>
         </div>
 
-        <!-- RBAC Role Pill & Switcher -->
-        <button class="btn btn-ghost btn-sm role-badge-pill" id="btn-role-switcher" title="Active Role: ${currentUser.role} (${currentUser.name}) - Click to switch role">
-          <i data-lucide="shield-check"></i>
-          <span>${currentUser.role}</span>
-        </button>
+        <!-- User Authentication & Session Control -->
+        ${currentUser ? `
+          <div class="user-auth-widget" id="user-auth-box">
+            <button class="btn btn-ghost btn-sm user-profile-pill" id="btn-open-login" title="Signed in as ${currentUser.name} (${currentUser.role}) - Click to switch account">
+              <span class="user-avatar-circle">${currentUser.name ? currentUser.name.split(" ").map(n => n[0]).join("").slice(0, 2) : "AD"}</span>
+              <div class="user-info-text desktop-only">
+                <span class="user-name">${currentUser.name || "Aarav Sharma"}</span>
+                <span class="user-role-badge">${currentUser.role || "Admin"}</span>
+              </div>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-icon btn-logout-action" id="btn-logout" title="Sign out of RIMS session">
+              <i data-lucide="log-out"></i>
+            </button>
+          </div>
+        ` : `
+          <button class="btn btn-primary btn-sm btn-signin-header" id="btn-open-login" title="Sign in as Admin or Staff">
+            <i data-lucide="log-in"></i>
+            <span>Sign In</span>
+          </button>
+        `}
 
         <button id="btn-simulate-ops" class="btn btn-secondary btn-sm" title="Simulate Daily Retail Transactions & Orders">
           <i data-lucide="zap"></i>
@@ -160,18 +175,25 @@ export function setupNavbarEvents(onTabChange) {
     });
   }
 
-  // RBAC Role Switcher Click
-  const roleBtn = document.getElementById("btn-role-switcher");
-  if (roleBtn) {
-    roleBtn.addEventListener("click", async () => {
-      const roles = ["Admin", "Inventory Manager", "Sales Manager", "Supplier Manager"];
-      const currentRole = store.getCurrentUser ? store.getCurrentUser().role : "Admin";
-      const nextIndex = (roles.indexOf(currentRole) + 1) % roles.length;
-      const nextRole = roles[nextIndex];
+  // Open Login Modal (Sign In / Switch Account)
+  const loginBtn = document.getElementById("btn-open-login");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      modals.openLoginModal();
+    });
+  }
 
-      toast.info(`Switching active RBAC role to [${nextRole}]...`);
-      const user = await store.switchRole(nextRole);
-      toast.success(`Active user: ${user.name} (${user.role}) - JWT session active.`);
+  // Logout Click
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      const user = store.getCurrentUser ? store.getCurrentUser() : null;
+      const userName = user ? user.name : "User";
+      if (confirm(`Sign out ${userName} from RIMS session?`)) {
+        store.logout();
+        toast.info("You have signed out of your session.");
+        modals.openLoginModal();
+      }
     });
   }
 }

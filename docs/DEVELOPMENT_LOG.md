@@ -95,4 +95,22 @@
   - Database: `retail_inventory_db` on `localhost:5432`.
   - GitHub Remote: Synchronized with `origin/main` at `https://github.com/adityamaurya17-bit/retail-inventory-management-system.git`. Credentials and `.env` securely excluded.
 
+### Entry 4: Enterprise Authentication System (Login / Logout / Admin Sessions)
+- **Date**: 2026-09-28
+- **Completed**:
+  - Implemented interactive Authentication Portal (`openLoginModal`) in [`src/components/Modals.js`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/src/components/Modals.js):
+    - One-click quick-fill role cards for System Admin (`admin@retailhub.in`), Inventory Manager, Sales Lead, and Supplier Manager.
+    - Password visibility toggle (eye / eye-off).
+    - Dynamic error alert banner for invalid credentials.
+    - Confetti victory burst on successful sign-in.
+  - Implemented Session Management & Logout in [`src/state/store.js`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/src/state/store.js):
+    - `store.login(email, password)`: invokes backend JWT API (`/api/auth/login`), retrieves token and role claims, updates session, and refreshes live PostgreSQL database caches.
+    - `store.logout()`: clears JWT token and user profile from storage, terminates session, resets state, and prompts the login modal.
+  - Updated Navbar Header Controls in [`src/components/Navbar.js`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/src/components/Navbar.js):
+    - When authenticated: displays user initials avatar circle, full name, role badge ("Admin"), and a dedicated Logout button with tooltip confirmation.
+    - When logged out: displays a prominent pulsing "Sign In" button that triggers the authentication modal.
+  - Styled all authentication widgets in [`src/style.css`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/src/style.css): user avatar badge, logout button hover animations, divider rules, and input icons.
+  - Verified compilation via `npx vite build` (passed in 548ms).
+
+
 
