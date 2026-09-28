@@ -93,5 +93,6 @@
   - Backend API: Running on `http://localhost:5000` (PostgreSQL 18.6 connected).
   - Frontend SPA: Running on `http://localhost:5174`.
   - Database: `retail_inventory_db` on `localhost:5432`.
+  - GitHub Remote: Synchronized with `origin/main` at `https://github.com/adityamaurya17-bit/retail-inventory-management-system.git`. Credentials and `.env` securely excluded.
 
 
