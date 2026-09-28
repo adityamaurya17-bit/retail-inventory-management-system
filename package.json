@@ -1,0 +1,25 @@
+{
+  "name": "retail-inventory-system-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Retail Inventory Management System (RIMS) - Full Stack Capstone Project",
+  "scripts": {
+    "frontend": "npm run dev --prefix frontend",
+    "backend": "npm run dev --prefix backend",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "build:frontend": "npm run build --prefix frontend",
+    "test:backend": "npm test --prefix backend"
+  },
+  "keywords": [
+    "retail",
+    "inventory",
+    "management",
+    "react",
+    "express",
+    "postgresql",
+    "agile",
+    "capstone"
+  ],
+  "author": "Full Stack Capstone Team",
+  "license": "ISC"
+}
