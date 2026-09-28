@@ -145,6 +145,36 @@
   - Algorithm test suite: 100% pass (`node --test tests/algorithms.test.js`).
   - Live servers healthy: Frontend `http://localhost:5174/` (200 OK) & Backend `http://localhost:5000/api/health` (200 OK).
 
+### Entry 6: Diagnosis & Resolution of Hosted Black Screen UI Bug
+- **Date**: 2026-09-29
+- **Root Cause Analysis**:
+  1. **Default Theme Token Inversion**:
+     - `:root` in `src/style.css` defined dark theme CSS tokens by default (`--bg-app: #090d16; --bg-surface: #111827;`).
+     - `index.html` hardcoded `<html lang="en" data-theme="dark">`.
+     - `src/main.js` initialized theme to `"dark"` if `rims_theme` was not present in `localStorage`.
+     - Consequently, every first-time visitor in production defaulted to near-black slate backgrounds instead of the intended professional light e-commerce layout.
+  2. **Absolute Asset Paths on Hosted Deployments**:
+     - Vite was not configured with `base: "./"` in a `vite.config.js`.
+     - In `dist/index.html`, assets were requested via root-relative paths (`/assets/index-...`).
+     - On GitHub Pages (`https://<user>.github.io/<repo>/`) or sub-path deployments, `/assets/...` returned HTTP 404 Not Found, causing CSS and JS to fail loading and rendering a black/empty screen.
+  3. **Missing Production Scripts in `package.json`**:
+     - Root `package.json` lacked `"build": "vite build"` and `"preview": "vite preview"` scripts, and did not declare the frontend dependencies (`vite`, `chart.js`, `lucide`, `canvas-confetti`).
+  4. **Dialog Overlay Guard**:
+     - Added explicit `dialog.app-dialog:not([open]) { display: none !important; }` in `src/style.css` to prevent modal dialogs or backdrop overlays from interfering with layout on page load.
+- **Files Modified**:
+  - `vite.config.js`: Created with `base: "./"` for universal hosting compatibility.
+  - `package.json`: Configured with `"dev": "vite"`, `"build": "vite build"`, `"preview": "vite preview"`, and declared dependencies.
+  - `index.html`: Changed default attribute to `<html lang="en" data-theme="light">`.
+  - `src/main.js`: Set default theme fallback to `"light"` and wrapped `renderApp()` in try/catch resilience block.
+  - `src/style.css`: Established professional light e-commerce tokens as `:root` default (`--bg-app: #f4f6f8; --bg-surface: #ffffff; --text-main: #0f172a;`), mapped dark theme to `[data-theme="dark"]`, and added dialog guard.
+  - `src/components/Navigation.js`: Updated theme switcher button to reflect current state (`moon` icon in light mode) and toggle cleanly.
+- **Verification**:
+  - `npm run build`: Succeeded with relative assets (`./assets/index-BACIpgCf.js` and `./assets/index-Da7XkT30.css`).
+  - `npm run preview`: Ran on `http://localhost:4173/`, verified HTTP 200 OK for HTML and all assets.
+  - Development dev server on `http://localhost:5174/`: Verified HTTP 200 OK.
+  - Algorithm tests (`node --test tests/algorithms.test.js`): 4/4 passing.
+
+
 
 
 

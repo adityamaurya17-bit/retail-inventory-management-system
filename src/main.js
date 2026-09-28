@@ -27,44 +27,55 @@ if (window.location.hash) {
   }
 }
 
-// Initialize Theme
-const savedTheme = localStorage.getItem("rims_theme") || "dark";
+// Initialize Theme - Professional Light E-Commerce Foundation Default
+const savedTheme = localStorage.getItem("rims_theme") || "light";
 document.documentElement.setAttribute("data-theme", savedTheme);
 
 function renderApp() {
   const app = document.getElementById("app");
   if (!app) return;
 
-  let viewHtml = "";
-  if (currentTab === "dashboard") {
-    viewHtml = renderDashboardView();
-  } else if (currentTab === "products") {
-    viewHtml = renderProductsView();
-  } else if (currentTab === "warehouses") {
-    viewHtml = renderWarehouseView();
-  } else if (currentTab === "orders") {
-    viewHtml = renderOrdersView();
-  } else if (currentTab === "suppliers") {
-    viewHtml = renderSuppliersView();
-  } else if (currentTab === "transfers") {
-    viewHtml = renderTransfersView();
-  } else if (currentTab === "agile") {
-    viewHtml = renderAgileCapstoneView();
-  } else if (currentTab === "architecture") {
-    viewHtml = renderArchitectureView();
-  }
+  try {
+    let viewHtml = "";
+    if (currentTab === "dashboard") {
+      viewHtml = renderDashboardView();
+    } else if (currentTab === "products") {
+      viewHtml = renderProductsView();
+    } else if (currentTab === "warehouses") {
+      viewHtml = renderWarehouseView();
+    } else if (currentTab === "orders") {
+      viewHtml = renderOrdersView();
+    } else if (currentTab === "suppliers") {
+      viewHtml = renderSuppliersView();
+    } else if (currentTab === "transfers") {
+      viewHtml = renderTransfersView();
+    } else if (currentTab === "agile") {
+      viewHtml = renderAgileCapstoneView();
+    } else if (currentTab === "architecture") {
+      viewHtml = renderArchitectureView();
+    }
 
-  app.innerHTML = `
-    <div class="app-layout">
-      ${renderSidebar(currentTab, handleTabChange)}
-      <div class="app-main-viewport">
-        ${renderTopHeader(currentTab, handleTabChange)}
-        <main id="main-content" class="app-content-body">
-          ${viewHtml}
-        </main>
+    app.innerHTML = `
+      <div class="app-layout">
+        ${renderSidebar(currentTab, handleTabChange)}
+        <div class="app-main-viewport">
+          ${renderTopHeader(currentTab, handleTabChange)}
+          <main id="main-content" class="app-content-body">
+            ${viewHtml}
+          </main>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } catch (err) {
+    console.error("[RIMS App Error]:", err);
+    app.innerHTML = `
+      <div style="padding: 40px; font-family: sans-serif; background: #ffffff; color: #0f172a; max-width: 800px; margin: 40px auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h2 style="color: #dc2626; margin-bottom: 12px;">Retail Operations System Notice</h2>
+        <p style="color: #64748b; margin-bottom: 16px;">An unexpected error occurred while rendering the active view. Please click below to reset to Dashboard.</p>
+        <button onclick="window.location.hash=''; window.location.reload();" style="padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Reload Dashboard</button>
+      </div>
+    `;
+  }
 
   // Hydrate Lucide Icons
   window.lucide.createIcons();

@@ -286,7 +286,7 @@ export function renderTopHeader(currentTab, onTabChange) {
 
         <!-- Dark/Light Theme Toggle -->
         <button type="button" class="btn-icon header-tool-btn" id="btn-header-theme" title="Toggle Dark/Light Mode">
-          <i data-lucide="sun"></i>
+          <i data-lucide="${document.documentElement.getAttribute("data-theme") === "dark" ? "sun" : "moon"}"></i>
         </button>
 
         <!-- User Authentication & Profile Widget -->
@@ -418,10 +418,11 @@ export function setupNavigationEvents(onTabChange) {
   const themeBtn = document.getElementById("btn-header-theme");
   if (themeBtn) {
     themeBtn.addEventListener("click", () => {
-      const isDark = document.documentElement.getAttribute("data-theme") !== "light";
-      document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
-      localStorage.setItem("rims_theme", isDark ? "light" : "dark");
-      themeBtn.innerHTML = `<i data-lucide="${isDark ? "moon" : "sun"}"></i>`;
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      const nextTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", nextTheme);
+      localStorage.setItem("rims_theme", nextTheme);
+      themeBtn.innerHTML = `<i data-lucide="${nextTheme === "dark" ? "sun" : "moon"}"></i>`;
       if (window.lucide) window.lucide.createIcons();
     });
   }
