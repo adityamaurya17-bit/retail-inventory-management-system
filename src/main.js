@@ -1,15 +1,16 @@
 import "./style.css";
 import { createIcons, icons } from "lucide";
 import { store } from "./state/store.js";
-import { renderSidebar, renderTopHeader, setupNavigationEvents } from "./components/Navigation.js";
-import { renderDashboardView, setupDashboardEvents } from "./components/DashboardView.js";
-import { renderProductsView, setupProductsEvents } from "./components/ProductsView.js";
-import { renderWarehouseView, setupWarehouseEvents } from "./components/WarehouseView.js";
-import { renderOrdersView, setupOrdersEvents } from "./components/OrdersView.js";
-import { renderSuppliersView, setupSuppliersEvents } from "./components/SuppliersView.js";
-import { renderTransfersView, setupTransfersEvents } from "./components/TransfersView.js";
-import { renderAgileCapstoneView, setupAgileCapstoneEvents } from "./components/AgileCapstoneView.js";
-import { renderArchitectureView, initArchitectureEvents } from "./components/ArchitectureView.js";
+import { renderSidebar, renderTopHeader, setupNavigationEvents } from "./components/layout/Navigation.js";
+import { renderDashboardView, setupDashboardEvents } from "./views/DashboardView.js";
+import { renderProductsView, setupProductsEvents } from "./views/ProductsView.js";
+import { renderWarehouseView, setupWarehouseEvents } from "./views/WarehouseView.js";
+import { renderOrdersView, setupOrdersEvents } from "./views/OrdersView.js";
+import { renderSuppliersView, setupSuppliersEvents } from "./views/SuppliersView.js";
+import { renderTransfersView, setupTransfersEvents } from "./views/TransfersView.js";
+import { renderAgileCapstoneView, setupAgileCapstoneEvents } from "./views/AgileCapstoneView.js";
+import { renderArchitectureView, initArchitectureEvents } from "./views/ArchitectureView.js";
+
 
 // Global icon hydration helper
 window.lucide = {

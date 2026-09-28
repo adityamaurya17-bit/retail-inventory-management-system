@@ -1,10 +1,5 @@
 /**
- * Navigation module bridging Sidebar and Top Header
+ * Backward-compatible barrel re-export for Navbar / Navigation module.
+ * Source: ./layout/Navbar.js
  */
-export {
-  renderSidebar,
-  renderTopHeader,
-  setupNavigationEvents,
-  renderSidebar as renderNavbar,
-  setupNavigationEvents as setupNavbarEvents
-} from "./Navigation.js";
+export * from "./layout/Navbar.js";

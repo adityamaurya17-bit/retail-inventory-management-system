@@ -55,41 +55,48 @@ The **Retail Inventory Management System (RIMS)** is an enterprise-grade, distri
 ## 3. Directory Structure
 
 ```
-c:\Users\ASUS\OneDrive\Desktop\P_022\
-├── README.md                           # Master Project Overview (This file)
-├── ARCHITECTURE.md                     # Comprehensive C4 diagrams, DDD, database & API specs
-├── AGILE_CAPSTONE_CASE_STUDY.md        # 8 Epics & 15 Sprints breakdown, ceremonies & Gherkin criteria
-├── database/
-│   └── schema.sql                      # Production PostgreSQL/SQLite relational schema (13 tables)
+P_022/
+├── backend/                      # Production REST API (Node.js + Express)
+│   ├── config/                   # PostgreSQL connection pool
+│   ├── controllers/              # 12 Domain REST controllers
+│   ├── middleware/               # JWT Auth, RBAC guards & error handlers
+│   ├── routes/                   # 12 Modular Express router endpoints
+│   ├── package.json
+│   └── server.js                 # API server bootstrap
+├── database/                     # PostgreSQL DDL and Seed Data
+│   ├── schema.sql                # 15 normalized tables, triggers, constraints
+│   └── seed.sql                  # Production retail seed dataset
+├── docs/                         # Engineering Documentation Suite
+│   ├── API_DOCUMENTATION.md      # REST API specification
+│   ├── ARCHITECTURE.md           # System blueprint & C4 models
+│   ├── COMPONENT_GUIDE.md        # UI components & state lifecycle
+│   ├── DEVELOPMENT_LOG.md        # Chronological engineering decisions
+│   ├── PROJECT_STRUCTURE.md      # Detailed codebase map
+│   ├── REFACTORING_PLAN.md       # Pre-refactoring plan & analysis
+│   └── REFACTORING_REPORT.md     # Post-refactoring verification report
+├── src/                          # Modular Frontend SPA
+│   ├── algorithms/               # ROP, Stock Allocation & Valuation engines
+│   ├── components/               # Layout, Modals, Toast, Common & Re-exports
+│   │   ├── common/               # Badges and UI primitives
+│   │   ├── layout/               # Sidebar & Top Navigation bar
+│   │   ├── modals/               # Native <dialog> ModalManager
+│   │   └── toast/                # Toast notifications
+│   ├── data/                     # Offline baseline dataset
+│   ├── services/                 # Backend REST client (api.js)
+│   ├── state/                    # Reactive store (store.js)
+│   ├── styles/                   # 6 Modular CSS partials (tokens, layout, views)
+│   ├── views/                    # 8 Domain views (Dashboard, Products, etc.)
+│   ├── main.js                   # Application router & entrypoint
+│   └── style.css                 # Master CSS entrypoint
 ├── tests/
-│   └── algorithms.test.js              # Automated unit tests for Allocation, ROP, and Valuation
-├── src/
-│   ├── algorithms/
-│   │   ├── stockAllocation.js          # Multi-warehouse order allocation engine
-│   │   ├── reorderPoint.js             # ROP, Safety Stock & EOQ formulas
-│   │   └── valuation.js                # FIFO vs AVCO stock valuation engine
-│   ├── components/
-│   │   ├── ArchitectureView.js         # Interactive C4 diagrams, ERD, and algorithm sandboxes
-│   │   ├── AgileCapstoneView.js        # 15 Sprints deep dive, ceremonies, and burndown chart
-│   │   ├── DashboardView.js            # Executive KPIs, Chart.js graphs, and audit ledger
-│   │   ├── ProductsView.js             # Product catalog (PIM) with search and filters
-│   │   ├── WarehouseView.js            # Multi-facility topology and bin visualization
-│   │   ├── OrdersView.js               # Omnichannel order fulfillment pipeline
-│   │   ├── SuppliersView.js            # Supplier directory and PO/GRN receiving
-│   │   ├── Navbar.js                   # Top navigation with live status badges
-│   │   ├── Modals.js                   # Interactive creation dialogs
-│   │   └── Toast.js                    # System notifications
-│   ├── data/
-│   │   └── initialData.js              # Realistic seed data for products, stock, POs, and sprints
-│   ├── state/
-│   │   └── store.js                    # Reactive state store with localStorage persistence
-│   ├── style.css                       # Modern design system (dark/light mode, glassmorphism)
-│   └── main.js                         # Application router and lifecycle coordinator
+│   └── algorithms.test.js        # Node.js native unit test runner
+├── index.html                    # Root HTML5 template
 ├── package.json
-└── index.html
+└── vite.config.js
 ```
 
 ---
+
 
 ## 4. Quick Start & Execution
 
