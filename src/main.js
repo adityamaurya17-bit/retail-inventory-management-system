@@ -1,7 +1,7 @@
 import "./style.css";
 import { createIcons, icons } from "lucide";
 import { store } from "./state/store.js";
-import { renderNavbar, setupNavbarEvents } from "./components/Navbar.js";
+import { renderSidebar, renderTopHeader, setupNavigationEvents } from "./components/Navigation.js";
 import { renderDashboardView, setupDashboardEvents } from "./components/DashboardView.js";
 import { renderProductsView, setupProductsEvents } from "./components/ProductsView.js";
 import { renderWarehouseView, setupWarehouseEvents } from "./components/WarehouseView.js";
@@ -55,17 +55,22 @@ function renderApp() {
   }
 
   app.innerHTML = `
-    ${renderNavbar(currentTab, handleTabChange)}
-    <main id="main-content">
-      ${viewHtml}
-    </main>
+    <div class="app-layout">
+      ${renderSidebar(currentTab, handleTabChange)}
+      <div class="app-main-viewport">
+        ${renderTopHeader(currentTab, handleTabChange)}
+        <main id="main-content" class="app-content-body">
+          ${viewHtml}
+        </main>
+      </div>
+    </div>
   `;
 
   // Hydrate Lucide Icons
   window.lucide.createIcons();
 
   // Attach event handlers
-  setupNavbarEvents(handleTabChange);
+  setupNavigationEvents(handleTabChange);
 
   if (currentTab === "dashboard") {
     setupDashboardEvents(handleTabChange);
