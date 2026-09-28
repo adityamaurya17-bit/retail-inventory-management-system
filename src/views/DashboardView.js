@@ -408,7 +408,11 @@ export function renderDashboardView() {
           <div class="warehouse-grid">
             ${warehouses
               .map((wh) => {
-                const util = store.getWarehouseUtilization ? store.getWarehouseUtilization(wh.id) : { usedUnits: 800, capacityUnits: 2000, utilizationPct: 40 };
+                const utilRaw = store.getWarehouseUtilization ? store.getWarehouseUtilization(wh.id) : null;
+                const totalCap = utilRaw?.totalCapacity || utilRaw?.capacityUnits || wh.capacity || 2000;
+                const used = utilRaw?.usedUnits ?? 800;
+                const pct = utilRaw?.percent !== undefined ? utilRaw.percent : Math.round((used / totalCap) * 100);
+
                 // Calculate stock value in this warehouse
                 const whProducts = products.filter((p) => {
                   const s = store.getProductStockSummary(p.id);
@@ -419,10 +423,8 @@ export function renderDashboardView() {
                 whProducts.forEach((p) => {
                   const s = store.getProductStockSummary(p.id);
                   const rec = s.records.find((r) => r.warehouseId === wh.id);
-                  if (rec) whValue += rec.onHand * p.costPrice;
+                  if (rec) whValue += rec.onHand * (p.costPrice || 0);
                 });
-
-                const pct = util.utilizationPct || Math.round((util.usedUnits / util.capacityUnits) * 100);
 
                 return `
                   <div class="warehouse-facility-card">
@@ -440,11 +442,11 @@ export function renderDashboardView() {
                     <div class="facility-stats-grid">
                       <div>
                         <span class="f-label">On Hand Units</span>
-                        <span class="f-value font-mono font-bold">${util.usedUnits.toLocaleString()}</span>
+                        <span class="f-value font-mono font-bold">${Number(used || 0).toLocaleString()}</span>
                       </div>
                       <div>
                         <span class="f-label">Asset Valuation</span>
-                        <span class="f-value font-mono font-bold">$${whValue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                        <span class="f-value font-mono font-bold">$${Number(whValue || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                       </div>
                       <div>
                         <span class="f-label">Active SKUs</span>
@@ -460,7 +462,7 @@ export function renderDashboardView() {
                     <div class="facility-progress-section">
                       <div class="progress-labels">
                         <span class="text-xs text-muted">Storage Capacity Utilization</span>
-                        <span class="text-xs font-mono font-bold">${pct}% (${util.usedUnits.toLocaleString()} / ${util.capacityUnits.toLocaleString()})</span>
+                        <span class="text-xs font-mono font-bold">${pct}% (${Number(used || 0).toLocaleString()} / ${Number(totalCap || 0).toLocaleString()})</span>
                       </div>
                       <div class="progress-track">
                         <div class="progress-fill ${pct > 85 ? "fill-warning" : "fill-primary"}" style="width: ${Math.min(pct, 100)}%;"></div>
