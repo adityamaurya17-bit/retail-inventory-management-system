@@ -1,16 +1,22 @@
 {
   "name": "retail-inventory-system",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Retail Inventory Management System (RIMS) - Full Stack Capstone Project",
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
     "start": "node backend/server.js",
     "server": "node backend/server.js",
-    "test:algorithms": "node --test tests/algorithms.test.js"
+    "init-db": "npm --prefix backend run init-db",
+    "test:algorithms": "node --test tests/algorithms.test.js",
+    "test": "node --test tests/algorithms.test.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

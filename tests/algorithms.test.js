@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { calculateDistance, simulateOrderAllocation } from "../src/algorithms/stockAllocation.js";
-import { calculateSafetyStock, calculateROP, calculateEOQ } from "../src/algorithms/reorderPoint.js";
-import { ValuationEngine } from "../src/algorithms/valuation.js";
+import { calculateDistance, simulateOrderAllocation } from "../frontend/src/algorithms/stockAllocation.js";
+import { calculateSafetyStock, calculateROP, calculateEOQ } from "../frontend/src/algorithms/reorderPoint.js";
+import { ValuationEngine } from "../frontend/src/algorithms/valuation.js";
+
 
 test("Algorithm 1: Distance Calculation & Haversine Formula", () => {
   // Distance from NYC (40.7128, -74.006) to Chicago (41.8781, -87.6298) is ~1145 km

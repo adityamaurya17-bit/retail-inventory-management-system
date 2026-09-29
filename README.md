@@ -262,7 +262,6 @@ P_022/
 │   │   ├── auth.js               # JWT bearer token verification & RBAC guards
 │   │   ├── errorHandler.js       # Centralized JSON error formatters
 │   │   └── validate.js           # express-validator schema sanitizers
-│   ├── models/                   # Reserved for future ORM/ActiveRecord models
 │   ├── routes/                   # 12 Modular Express Router Handlers
 │   │   ├── authRoutes.js
 │   │   ├── categoryRoutes.js
@@ -278,89 +277,60 @@ P_022/
 │   │   └── warehouseRoutes.js
 │   ├── scripts/                  # Administrative & Setup Scripts
 │   │   └── init-db.js            # Automated DDL execution and schema verification
-│   ├── services/                 # Reserved for external microservice integration
-│   ├── utils/                    # Shared backend helper utilities
 │   ├── .env                      # Local environment configuration
 │   ├── .env.example              # Template environment configuration
 │   ├── package.json              # Backend service dependencies
 │   └── server.js                 # Express application bootstrap & route mounting
 │
+├── frontend/                     # Modular Frontend Single-Page Application (SPA)
+│   ├── public/                   # Static Assets & Web App Manifest
+│   │   ├── favicon.svg           # Application vector icon
+│   │   └── icons.svg
+│   ├── src/                      # Frontend Source Code
+│   │   ├── algorithms/           # Verified Scientific Calculation Engines
+│   │   │   ├── reorderPoint.js   # Dynamic Safety Stock, ROP & EOQ
+│   │   │   ├── stockAllocation.js# Haversine Distance & Split Routing
+│   │   │   └── valuation.js      # Dual Valuation (FIFO vs. AVCO)
+│   │   ├── assets/               # Static Visual Media (hero.png)
+│   │   ├── components/           # Modular UI Components & Compatibility Re-exports
+│   │   │   ├── common/           # Shared UI primitives (index.js)
+│   │   │   ├── layout/           # Navigation.js, Navbar.js
+│   │   │   ├── modals/           # ModalManager.js (<dialog> controller)
+│   │   │   └── toast/            # Toast.js (Notification system)
+│   │   ├── data/                 # Offline Baseline Datasets (initialData.js)
+│   │   ├── services/             # REST Client (api.js)
+│   │   ├── state/                # Reactive State Store (store.js)
+│   │   ├── styles/               # Modular CSS Architecture
+│   │   │   ├── base.css          # Resets, typography, buttons, badges
+│   │   │   ├── dashboard.css     # KPIs, operational queue, charts
+│   │   │   ├── layout.css        # App shell, sidebar, top header
+│   │   │   ├── modals.css        # Dialogs, forms, scanner, packing slip
+│   │   │   ├── variables.css     # Design tokens, Light & Dark themes
+│   │   │   └── views.css         # Domain views (PIM, Bins, Kanban, etc.)
+│   │   ├── views/                # 8 Dedicated Business Domain Views
+│   │   │   ├── AgileCapstoneView.js
+│   │   │   ├── ArchitectureView.js
+│   │   │   ├── DashboardView.js
+│   │   │   ├── OrdersView.js
+│   │   │   ├── ProductsView.js
+│   │   │   ├── SuppliersView.js
+│   │   │   ├── TransfersView.js
+│   │   │   └── WarehouseView.js
+│   │   ├── main.js               # Application Entrypoint & Event Dispatcher
+│   │   └── style.css             # Master Stylesheet Importing Modular Partials
+│   ├── index.html                # Single-Page Application Root Template
+│   ├── package.json              # Frontend package configuration
+│   └── vite.config.js            # Vite Bundler Configuration
+│
 ├── database/                     # PostgreSQL Database DDL and DML
 │   ├── schema.sql                # 15 normalized tables, foreign keys, triggers, constraints
 │   └── seed.sql                  # Comprehensive retail demo seed dataset
 │
-├── public/                       # Static Assets & Web App Manifest
-│   └── favicon.svg               # Application icon
-│
-├── src/                          # Modular Frontend Single-Page Application (SPA)
-│   ├── algorithms/               # Verified Scientific Calculation Engines
-│   │   ├── reorderPoint.js       # Dynamic Safety Stock, ROP & Economic Order Quantity
-│   │   ├── stockAllocation.js    # Haversine Distance & Split-Shipment Routing
-│   │   └── valuation.js          # Dual Inventory Valuation (FIFO vs. AVCO)
-│   │
-│   ├── assets/                   # Static Visual Media
-│   │   └── hero.png              # High-resolution architectural preview
-│   │
-│   ├── components/               # Modular UI Components & Compatibility Re-exports
-│   │   ├── common/               # Shared UI primitives & status badges
-│   │   │   └── index.js          # renderBadge, renderStatusBadge, formatters
-│   │   ├── layout/               # Application Shell Layout
-│   │   │   ├── Navigation.js     # Enterprise Sidebar & Top Navigation Bar
-│   │   │   └── Navbar.js         # Alias export for backward compatibility
-│   │   ├── modals/               # Modal Dialogs Subsystem
-│   │   │   └── ModalManager.js   # Native HTML5 <dialog> modal controller
-│   │   ├── toast/                # Notification Subsystem
-│   │   │   └── Toast.js          # Interactive dismissible toast alerts
-│   │   ├── AgileCapstoneView.js  # Backward-compatible barrel re-export
-│   │   ├── ArchitectureView.js   # Backward-compatible barrel re-export
-│   │   ├── DashboardView.js      # Backward-compatible barrel re-export
-│   │   ├── Modals.js             # Backward-compatible barrel re-export
-│   │   ├── Navbar.js             # Backward-compatible barrel re-export
-│   │   ├── Navigation.js         # Backward-compatible barrel re-export
-│   │   ├── OrdersView.js         # Backward-compatible barrel re-export
-│   │   ├── ProductsView.js       # Backward-compatible barrel re-export
-│   │   ├── SuppliersView.js      # Backward-compatible barrel re-export
-│   │   ├── Toast.js              # Backward-compatible barrel re-export
-│   │   ├── TransfersView.js      # Backward-compatible barrel re-export
-│   │   └── WarehouseView.js      # Backward-compatible barrel re-export
-│   │
-│   ├── data/                     # Offline Baseline & Seeding Datasets
-│   │   └── initialData.js        # Fallback offline state (products, orders, warehouses)
-│   │
-│   ├── services/                 # HTTP Client & External Integrations
-│   │   └── api.js                # REST API client with automatic token attachment
-│   │
-│   ├── state/                    # Reactive Client State Management
-│   │   └── store.js              # Central reactive store with pub/sub subscriptions
-│   │
-│   ├── styles/                   # Modular CSS Architecture
-│   │   ├── base.css              # Resets, typography, scrollbars, buttons, badges
-│   │   ├── dashboard.css         # Business KPIs, operational queue, Chart.js split
-│   │   ├── layout.css            # App shell, sidebar, top header, mobile drawer
-│   │   ├── modals.css            # Dialogs, forms, barcode scanner, packing slip
-│   │   ├── variables.css         # Design tokens, Light (default) & Dark themes
-│   │   └── views.css             # Domain views (PIM, Warehouse, Kanban, SRM, Agile)
-│   │
-│   ├── views/                    # Dedicated Business Domain Views
-│   │   ├── AgileCapstoneView.js  # 8 Epics, 15 Sprints, User Stories & Scrum Framework
-│   │   ├── ArchitectureView.js   # C4 System Architecture, ERD Models & Algorithms
-│   │   ├── DashboardView.js      # Supply Chain Executive Dashboard & KPI Radar
-│   │   ├── OrdersView.js         # Sales Orders, Kanban Pipeline & Dispatch
-│   │   ├── ProductsView.js       # PIM Catalog & SKU Management
-│   │   ├── SuppliersView.js      # Supplier Directory & PO Management
-│   │   ├── TransfersView.js      # Inter-Warehouse Stock Transfers
-│   │   └── WarehouseView.js      # Multi-Facility Balances, Zones & Bin Grid
-│   │
-│   ├── main.js                   # Application Entrypoint, Event Routing & Dispatcher
-│   └── style.css                 # Master Stylesheet Importing Modular Partials
-│
 ├── tests/                        # Automated Test Suites
 │   └── algorithms.test.js        # Node.js native test runner verifying core algorithms
 │
-├── index.html                    # Single-Page Application Root Template
-├── package.json                  # Root npm configuration, scripts & dependencies
-├── README.md                     # Master Technical Documentation (This file)
-└── vite.config.js                # Vite Bundler Configuration
+├── package.json                  # Root npm orchestrator with workspaces
+└── README.md                     # Master Technical Documentation (This file)
 ```
 
 ---
