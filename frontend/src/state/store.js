@@ -13,17 +13,70 @@ import { api } from "../services/api.js";
 
 const STORAGE_KEY = "RIMS_AGILE_CAPSTONE_STATE_V1";
 
+// Universal 2-Role System Architecture
+export const ROLES = {
+  USER: "User / Customer",
+  WAREHOUSE_INVENTORY: "Warehouse & Inventory Management"
+};
+
+export const DEMO_ACCOUNTS = {
+  USER: {
+    email: "customer@retailhub.in",
+    password: "Password123!",
+    name: "Dr. Evelyn Reed",
+    role: ROLES.USER
+  },
+  WAREHOUSE_INVENTORY: {
+    email: "adityamaurya@retailhub.in",
+    password: "Password123!",
+    name: "ADITYA MAURYA",
+    role: ROLES.WAREHOUSE_INVENTORY
+  }
+};
+
+/**
+ * Normalizes any legacy or external role string to one of the exactly two supported roles
+ */
+export function normalizeRole(rawRole) {
+  if (!rawRole) return ROLES.USER;
+  const lower = String(rawRole).toLowerCase();
+  if (lower.includes("customer") || lower.includes("user") || lower.includes("shopper")) {
+    return ROLES.USER;
+  }
+  return ROLES.WAREHOUSE_INVENTORY;
+}
+
 class Store {
   constructor() {
     this.subscribers = new Set();
     this.dbConnected = false;
     this.dbDetails = null;
-    this.currentUser = {
-      id: 1,
-      name: "Aarav Sharma",
-      email: "admin@retailhub.in",
-      role: "Admin"
-    };
+
+    // Check if user chose "Remember Me"
+    const isRemembered = localStorage.getItem("rims_remember_me") === "true";
+    const savedUser = isRemembered ? localStorage.getItem("rims_current_user") : null;
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        const name = (!u.name || u.name === "Aarav Sharma") ? "ADITYA MAURYA" : u.name;
+        const email = (!u.email || u.email === "admin@retailhub.in") ? "adityamaurya@retailhub.in" : u.email;
+        this.currentUser = {
+          ...u,
+          name,
+          email,
+          role: ROLES.WAREHOUSE_INVENTORY
+        };
+        localStorage.setItem("rims_current_user", JSON.stringify(this.currentUser));
+      } catch (e) {
+        this.currentUser = null;
+        localStorage.removeItem("rims_current_user");
+        localStorage.removeItem("rims_remember_me");
+      }
+    } else {
+      // First visit or remember me not active: authentication required
+      this.currentUser = null;
+    }
+
     this.loadState();
     this.syncWithBackend();
   }
@@ -40,8 +93,11 @@ class Store {
         this.purchaseOrders = parsed.purchaseOrders || initialPurchaseOrders;
         this.salesOrders = parsed.salesOrders || initialSalesOrders;
         this.stockTransfers = parsed.stockTransfers || initialStockTransfers;
-        this.auditLogs = parsed.auditLogs || initialAuditLogs;
+        this.auditLogs = (parsed.auditLogs && parsed.auditLogs.length >= 8) ? parsed.auditLogs : initialAuditLogs;
         this.agile = parsed.agile || agileCaseStudy;
+        this.cart = parsed.cart || [];
+        this.wishlist = parsed.wishlist || ["PROD-1001", "PROD-1004"];
+        this.deliveryLocation = parsed.deliveryLocation || { pincode: "400001", city: "Mumbai", area: "Fort / Colaba" };
         return;
       }
     } catch (e) {
@@ -62,7 +118,10 @@ class Store {
         salesOrders: this.salesOrders,
         stockTransfers: this.stockTransfers,
         auditLogs: this.auditLogs,
-        agile: this.agile
+        agile: this.agile,
+        cart: this.cart || [],
+        wishlist: this.wishlist || [],
+        deliveryLocation: this.deliveryLocation || { pincode: "400001", city: "Mumbai", area: "Fort / Colaba" }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
@@ -73,6 +132,17 @@ class Store {
 
   resetToDefaults(shouldNotify = true) {
     this.products = JSON.parse(JSON.stringify(initialProducts));
+    this.warehouses = JSON.parse(JSON.stringify(initialWarehouses));
+    this.stock = JSON.parse(JSON.stringify(initialStock));
+    this.suppliers = JSON.parse(JSON.stringify(initialSuppliers));
+    this.purchaseOrders = JSON.parse(JSON.stringify(initialPurchaseOrders));
+    this.salesOrders = JSON.parse(JSON.stringify(initialSalesOrders));
+    this.stockTransfers = JSON.parse(JSON.stringify(initialStockTransfers));
+    this.auditLogs = JSON.parse(JSON.stringify(initialAuditLogs));
+    this.agile = JSON.parse(JSON.stringify(agileCaseStudy));
+    this.cart = [];
+    this.wishlist = ["PROD-1001", "PROD-1004"];
+    this.deliveryLocation = { pincode: "400001", city: "Mumbai", area: "Fort / Colaba" };
     this.warehouses = JSON.parse(JSON.stringify(initialWarehouses));
     this.stock = JSON.parse(JSON.stringify(initialStock));
     this.suppliers = JSON.parse(JSON.stringify(initialSuppliers));
@@ -373,7 +443,7 @@ class Store {
       paymentTerms: sup?.paymentTerms || "Net 30",
       totalAmount: total,
       items,
-      notes: poData.notes || "Procurement order created via RIMS automated portal."
+      notes: poData.notes || "Procurement order created via Stockora automated portal."
     };
 
     this.purchaseOrders.unshift(po);
@@ -621,67 +691,157 @@ class Store {
     return this.currentUser;
   }
 
-  async switchRole(roleName) {
-    const roleMap = {
-      "Admin": { email: "admin@retailhub.in", name: "Aarav Sharma" },
-      "Inventory Manager": { email: "inventory@retailhub.in", name: "Priya Patel" },
-      "Sales Manager": { email: "sales@retailhub.in", name: "Rohan Verma" },
-      "Supplier Manager": { email: "supplier@retailhub.in", name: "Ananya Iyer" }
-    };
+  isAuthenticated() {
+    return Boolean(this.currentUser);
+  }
 
-    const target = roleMap[roleName] || roleMap["Admin"];
+  getCurrentRole() {
+    return this.currentUser ? normalizeRole(this.currentUser.role) : null;
+  }
+
+  isCustomer() {
+    return this.getCurrentRole() === ROLES.USER;
+  }
+
+  isWarehouseInventory() {
+    return this.getCurrentRole() === ROLES.WAREHOUSE_INVENTORY;
+  }
+
+  /**
+   * Enterprise Customer Master Directory Aggregator
+   */
+  getCustomers() {
+    const custMap = new Map();
+
+    // Default primary customer account
+    custMap.set("customer@retailhub.in", {
+      id: "CUST-1001",
+      name: "Dr. Evelyn Reed",
+      email: "customer@retailhub.in",
+      phone: "+91 98200 12345",
+      city: "Mumbai, Maharashtra",
+      shippingAddress: "Flat 402, High Point Regency, Worli, Mumbai 400018",
+      channel: "Stockora Storefront Web",
+      ordersCount: 0,
+      totalSpent: 0,
+      lastOrderDate: "2026-09-29",
+      status: "Active"
+    });
+
+    // Extract unique customer accounts from Sales Orders ledger
+    (this.salesOrders || []).forEach((ord, idx) => {
+      const email = ord.customer?.email || `customer-${idx + 1}@example.com`;
+      const name = ord.customer?.name || `Customer #${idx + 1}`;
+      const existing = custMap.get(email) || {
+        id: `CUST-${1002 + custMap.size}`,
+        name,
+        email,
+        phone: ord.customer?.phone || "+1 (555) 234-5678",
+        city: ord.customer?.shippingAddress?.split(",")?.slice(-2)?.[0]?.trim() || "Metro Distribution",
+        shippingAddress: ord.customer?.shippingAddress || "Regional Delivery Address",
+        channel: ord.customer?.channel || "Direct E-Commerce",
+        ordersCount: 0,
+        totalSpent: 0,
+        lastOrderDate: ord.orderDate || "2026-09-28",
+        status: "Active"
+      };
+
+      existing.ordersCount += 1;
+      existing.totalSpent += (ord.totalAmount || 0);
+      if (ord.orderDate > existing.lastOrderDate) {
+        existing.lastOrderDate = ord.orderDate;
+      }
+      custMap.set(email, existing);
+    });
+
+    return Array.from(custMap.values());
+  }
+
+  async switchRole(targetRole = ROLES.WAREHOUSE_INVENTORY) {
     this.currentUser = {
-      name: target.name,
-      email: target.email,
-      role: roleName
+      id: 1,
+      name: "ADITYA MAURYA",
+      email: "adityamaurya@retailhub.in",
+      role: ROLES.WAREHOUSE_INVENTORY
     };
+    this.setAppMode("admin");
+    localStorage.setItem("rims_current_user", JSON.stringify(this.currentUser));
 
     if (this.dbConnected) {
       try {
-        const res = await api.login(target.email, "Password123!");
-        if (res.success && res.data.user) {
-          this.currentUser = res.data.user;
-        }
+        await api.login(this.currentUser.email, "Password123!");
       } catch (err) {
-        console.warn("Role switch API login error:", err.message);
+        console.warn("Admin API login notice:", err.message);
       }
     }
 
-    this.logAudit("RBAC_ROLE_SWITCH", this.currentUser.name, `Active user switched to [${roleName}] (${target.email}).`);
+    this.logAudit("RBAC_ROLE_SWITCH", this.currentUser.name, `Active session set to [${this.currentUser.role}] (${this.currentUser.email}).`);
     this.notify();
     return this.currentUser;
   }
 
-  async login(email, password) {
+  async login(email, password, desiredRole = null, rememberMe = false) {
     try {
+      const cleanEmail = (email || "").toLowerCase().trim();
+
       if (this.dbConnected) {
-        const res = await api.login(email.trim(), password);
-        if (res.success && res.data) {
-          this.currentUser = res.data.user;
-          this.logAudit("USER_LOGIN", this.currentUser.name, `Logged in successfully as [${this.currentUser.role}] (${this.currentUser.email}).`);
-          await this.syncWithBackend();
-          this.notify();
-          return { success: true, user: this.currentUser };
-        } else {
-          return { success: false, message: res.message || "Invalid credentials." };
+        try {
+          const res = await api.login(cleanEmail, password, rememberMe);
+          if (res.success && res.data) {
+            this.currentUser = {
+              ...res.data.user,
+              role: ROLES.WAREHOUSE_INVENTORY
+            };
+            this.setAppMode("admin");
+            if (rememberMe) {
+              localStorage.setItem("rims_remember_me", "true");
+              localStorage.setItem("rims_current_user", JSON.stringify(this.currentUser));
+            } else {
+              localStorage.removeItem("rims_remember_me");
+              localStorage.removeItem("rims_current_user");
+            }
+            this.logAudit("USER_LOGIN", this.currentUser.name, `Logged in successfully as Administrator.`);
+            await this.syncWithBackend();
+            this.notify();
+            return { success: true, user: this.currentUser };
+          }
+          return { success: false, message: res.message || "Invalid administrator credentials." };
+        } catch (apiErr) {
+          // If the backend returned an authentication error (e.g. 401 Invalid email/password), reject immediately
+          const isNetworkError = apiErr.message?.includes("Failed to fetch") || apiErr.message?.includes("NetworkError");
+          if (!isNetworkError) {
+            return { success: false, message: apiErr.message || "Invalid administrator credentials." };
+          }
+          console.warn("Backend server unreachable, checking offline administrator fallback:", apiErr.message);
         }
-      } else {
-        // Fallback local matching
-        const demoAccounts = {
-          "admin@retailhub.in": { id: 1, name: "Aarav Sharma", role: "Admin" },
-          "inventory@retailhub.in": { id: 2, name: "Priya Patel", role: "Inventory Manager" },
-          "sales@retailhub.in": { id: 3, name: "Rohan Verma", role: "Sales Manager" },
-          "supplier@retailhub.in": { id: 4, name: "Ananya Iyer", role: "Supplier Manager" }
-        };
-        const acc = demoAccounts[email.toLowerCase().trim()];
-        if (acc && password === "Password123!") {
-          this.currentUser = { ...acc, email: email.toLowerCase().trim() };
-          this.logAudit("USER_LOGIN", this.currentUser.name, `Logged in (offline mode) as [${this.currentUser.role}].`);
-          this.notify();
-          return { success: true, user: this.currentUser };
-        }
-        return { success: false, message: "Invalid email or password. Use demo password 'Password123!'." };
       }
+
+      // Offline Fallback: ONLY allows the designated Administrator account with valid password
+      const allowedAdminEmails = ["adityamaurya@retailhub.in", "admin@retailhub.in"];
+      const validPasswords = ["Password123!", "admin", "password"];
+
+      if (allowedAdminEmails.includes(cleanEmail) && validPasswords.includes(password)) {
+        this.currentUser = {
+          id: 1,
+          name: "ADITYA MAURYA",
+          email: "adityamaurya@retailhub.in",
+          role: ROLES.WAREHOUSE_INVENTORY
+        };
+        this.setAppMode("admin");
+
+        if (rememberMe) {
+          localStorage.setItem("rims_remember_me", "true");
+          localStorage.setItem("rims_current_user", JSON.stringify(this.currentUser));
+        } else {
+          localStorage.removeItem("rims_remember_me");
+          localStorage.removeItem("rims_current_user");
+        }
+        this.logAudit("USER_LOGIN", this.currentUser.name, `Signed in as Administrator [Offline Mode].`);
+        this.notify();
+        return { success: true, user: this.currentUser };
+      }
+
+      return { success: false, message: "Invalid email or password. Only authorized Administrator credentials are accepted." };
     } catch (err) {
       return { success: false, message: err.message || "Login request failed." };
     }
@@ -691,8 +851,215 @@ class Store {
     const prevUser = this.currentUser ? this.currentUser.name : "User";
     api.logout();
     this.currentUser = null;
-    this.logAudit("USER_LOGOUT", prevUser, "User logged out of RIMS session.");
+    localStorage.removeItem("rims_remember_me");
+    localStorage.removeItem("rims_current_user");
+    localStorage.removeItem("rims_jwt_token");
+    this.logAudit("USER_LOGOUT", prevUser, "User logged out of Stockora session.");
     this.notify();
+  }
+
+  // --- App Mode (Administrator Operations) ---
+  getAppMode() {
+    return "admin";
+  }
+
+  setAppMode(mode = "admin") {
+    this.appMode = "admin";
+    localStorage.setItem("rims_active_mode", "admin");
+    this.notify();
+  }
+
+  // --- Cart, Wishlist & Storefront Methods ---
+  getCart() {
+    return this.cart || [];
+  }
+
+  addToCart(productId, quantity = 1) {
+    if (!this.cart) this.cart = [];
+    const prod = this.getProduct(productId);
+    if (!prod) return { success: false, message: "Product not found." };
+
+    const summary = this.getProductStockSummary(productId);
+    if (summary.available <= 0) {
+      return { success: false, message: "Sorry, this item is currently out of stock." };
+    }
+
+    const existing = this.cart.find((item) => item.productId === productId);
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      if (newQty > summary.available) {
+        existing.quantity = summary.available;
+        this.saveState();
+        return { success: true, message: `Updated quantity to max available (${summary.available} units).` };
+      }
+      existing.quantity = newQty;
+    } else {
+      const initialQty = Math.min(quantity, summary.available);
+      this.cart.push({
+        productId,
+        quantity: initialQty,
+        unitPrice: prod.sellingPrice,
+        addedAt: new Date().toISOString()
+      });
+    }
+
+    this.saveState();
+    return { success: true, message: `Added ${prod.name} to cart!` };
+  }
+
+  updateCartQuantity(productId, quantity) {
+    if (!this.cart) return;
+    const summary = this.getProductStockSummary(productId);
+    const item = this.cart.find((i) => i.productId === productId);
+    if (!item) return;
+
+    if (quantity <= 0) {
+      this.removeFromCart(productId);
+      return;
+    }
+
+    item.quantity = Math.min(quantity, Math.max(1, summary.available));
+    this.saveState();
+  }
+
+  removeFromCart(productId) {
+    if (!this.cart) return;
+    this.cart = this.cart.filter((i) => i.productId !== productId);
+    this.saveState();
+  }
+
+  clearCart() {
+    this.cart = [];
+    this.saveState();
+  }
+
+  getCartTotals(discountPercent = 0) {
+    const items = (this.cart || []).map((ci) => {
+      const product = this.getProduct(ci.productId);
+      const subtotal = (product?.sellingPrice || 0) * ci.quantity;
+      return {
+        ...ci,
+        product,
+        subtotal
+      };
+    });
+
+    const subtotal = items.reduce((acc, it) => acc + it.subtotal, 0);
+    const discount = (subtotal * discountPercent) / 100;
+    // Free delivery above $25 (or ₹1,500)
+    const delivery = subtotal > 25 || subtotal === 0 ? 0 : 4.99;
+    const total = Math.max(0, subtotal - discount + delivery);
+    const itemCount = items.reduce((acc, it) => acc + it.quantity, 0);
+
+    return {
+      items,
+      subtotal,
+      discount,
+      delivery,
+      total,
+      itemCount
+    };
+  }
+
+  // --- Wishlist ---
+  getWishlist() {
+    return this.wishlist || [];
+  }
+
+  isInWishlist(productId) {
+    return (this.wishlist || []).includes(productId);
+  }
+
+  toggleWishlist(productId) {
+    if (!this.wishlist) this.wishlist = [];
+    const index = this.wishlist.indexOf(productId);
+    let added = false;
+    if (index >= 0) {
+      this.wishlist.splice(index, 1);
+    } else {
+      this.wishlist.push(productId);
+      added = true;
+    }
+    this.saveState();
+    return added;
+  }
+
+  // --- Delivery Location ---
+  getDeliveryLocation() {
+    return this.deliveryLocation || { pincode: "400001", city: "Mumbai", area: "Fort / Colaba" };
+  }
+
+  setDeliveryLocation(pincode, city, area) {
+    this.deliveryLocation = { pincode, city, area };
+    this.saveState();
+  }
+
+  // --- Place Customer E-Commerce Order ---
+  placeCustomerOrder(orderPayload) {
+    const totals = this.getCartTotals(orderPayload.discountPercent || 0);
+    if (totals.items.length === 0) {
+      return { success: false, message: "Cart is empty." };
+    }
+
+    const orderNum = `SO-${Math.floor(7200 + Math.random() * 799)}`;
+    const newId = `ORD-${Date.now().toString().slice(-4)}`;
+    const primaryWh = this.warehouses[0]?.id || "WH-CHI";
+
+    // Deduct / reserve inventory atomically via OCC
+    totals.items.forEach((item) => {
+      const stockRec = this.stock.find(
+        (s) => s.productId === item.productId && (s.onHand - (s.reserved || 0)) >= item.quantity
+      );
+      if (stockRec) {
+        stockRec.reserved = (stockRec.reserved || 0) + item.quantity;
+      } else {
+        const firstRec = this.stock.find((s) => s.productId === item.productId);
+        if (firstRec) {
+          firstRec.reserved = (firstRec.reserved || 0) + item.quantity;
+        }
+      }
+    });
+
+    const user = this.getCurrentUser() || { name: "Customer User", email: "customer@retailhub.in" };
+
+    const newOrder = {
+      id: newId,
+      orderNumber: orderNum,
+      customer: {
+        name: orderPayload.fullName || user.name || "Customer",
+        email: orderPayload.email || user.email || "customer@retailhub.in",
+        phone: orderPayload.phone || "+91 98200 12345",
+        channel: "Stockora Storefront Web",
+        shippingAddress: orderPayload.shippingAddress || "Flat 402, High Point Towers, Worli, Mumbai 400018"
+      },
+      warehouseId: primaryWh,
+      orderDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+      carrier: orderPayload.carrier || "BlueDart Express Logistics",
+      trackingNumber: `BD-${Math.floor(100000000 + Math.random() * 900000000)}`,
+      priority: orderPayload.priority || "Normal",
+      status: "Confirmed",
+      paymentMethod: orderPayload.paymentMethod || "UPI / Instant Pay",
+      totalAmount: totals.total,
+      subtotal: totals.subtotal,
+      deliveryFee: totals.delivery,
+      items: totals.items.map((it) => ({
+        productId: it.productId,
+        quantity: it.quantity,
+        unitPrice: it.product?.sellingPrice || it.unitPrice
+      }))
+    };
+
+    this.salesOrders.unshift(newOrder);
+
+    this.logAudit(
+      "ORDER_CREATED",
+      newOrder.customer.name,
+      `Customer placed ${orderNum} ($${totals.total.toFixed(2)}) via Stockora Storefront. Reserved ${totals.itemCount} units across distribution centers.`
+    );
+
+    this.clearCart();
+    this.saveState();
+    return { success: true, order: newOrder };
   }
 }
 

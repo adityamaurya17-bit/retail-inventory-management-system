@@ -1,0 +1,274 @@
+/* ==========================================================================
+   RIMS Unified 2-Role Authentication Experience
+   Roles: User / Customer vs Warehouse & Inventory Management
+   ========================================================================== */
+
+.login-page-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(circle at 50% 10%, rgba(37, 99, 235, 0.04) 0%, transparent 60%);
+}
+
+.login-card-shell {
+  max-width: 580px;
+  width: 100%;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .login-card-shell {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.login-card-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-brand-mark-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.login-brand-title {
+  font-family: var(--font-sans);
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.login-brand-subtitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 4px 0 0 0;
+  letter-spacing: 0.01em;
+}
+
+.login-brand-caption {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Two-Role Selector Grid */
+.login-role-selection-block {
+  margin-bottom: 22px;
+}
+
+.role-selector-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.two-role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.role-card-btn {
+  background-color: var(--bg-canvas);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+  display: flex;
+  flex-direction: column;
+}
+
+.role-card-btn:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.role-card-btn.active-customer {
+  border-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.role-card-btn.active-enterprise {
+  border-color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.role-card-top {
+  margin-bottom: 8px;
+}
+
+.role-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-icon-box i {
+  width: 16px;
+  height: 16px;
+}
+
+.role-icon-customer {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.role-icon-enterprise {
+  background-color: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
+
+.role-card-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.text-accent-customer {
+  color: #b45309;
+}
+
+[data-theme="dark"] .text-accent-customer {
+  color: #fbbf24;
+}
+
+.text-accent-enterprise {
+  color: #1d4ed8;
+}
+
+[data-theme="dark"] .text-accent-enterprise {
+  color: #60a5fa;
+}
+
+.role-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+/* Credentials Form */
+.login-form {
+  margin-bottom: 20px;
+}
+
+.btn-icon-inside {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-inside:hover {
+  color: var(--text-main);
+}
+
+.btn-icon-inside i {
+  width: 16px;
+  height: 16px;
+}
+
+/* Demo Helpers */
+.login-demo-helpers {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.demo-helpers-divider {
+  text-align: center;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.demo-helpers-divider span {
+  background-color: var(--bg-surface);
+  padding: 0 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.demo-helpers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-demo-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.btn-demo-quick:hover {
+  background-color: var(--bg-surface-hover, rgba(0, 0, 0, 0.03));
+  border-color: var(--border-focus);
+}
+
+.btn-demo-quick i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.login-card-footer {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Mobile responsive collapse */
+@media (max-width: 520px) {
+  .login-card-shell {
+    padding: 24px 18px;
+  }
+  .two-role-grid,
+  .demo-helpers-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3,9 +3,9 @@ import { modals } from "../components/modals/ModalManager.js";
 import { toast } from "../components/toast/Toast.js";
 import confetti from "canvas-confetti";
 
-
 let selectedChannel = "All";
 let searchOrderText = "";
+let orderViewMode = localStorage.getItem("rims_orders_view_mode") || "kanban";
 
 export function renderOrdersView() {
   const allOrders = store.getSalesOrders();
@@ -36,134 +36,254 @@ export function renderOrdersView() {
 
   return `
     <div class="view-container animate-fade-in">
-      <div class="view-header">
+      <!-- Semantic View Header -->
+      <header class="view-header flex-between flex-wrap gap-sm">
         <div>
           <h1 class="view-title">Omnichannel Order Fulfillment & Wave Dispatch</h1>
           <p class="view-subtitle">Intelligent warehouse routing, wave picking verification, and automated carrier dispatch</p>
         </div>
         <div class="header-actions">
-          <button id="btn-create-order-view" class="btn btn-primary btn-sm">
-            <i data-lucide="plus-circle"></i>
+          <button type="button" id="btn-create-order-view" class="btn btn-primary btn-sm">
+            <i data-lucide="plus-circle" aria-hidden="true"></i>
             <span>Create Sales Order</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <!-- Toolbar & Channel Chips -->
-      <div class="toolbar-card">
+      <!-- Semantic Toolbar & Channel Chips Navigation -->
+      <nav class="toolbar-card" aria-label="Order search and filter controls">
         <div class="search-input-wrapper">
-          <i data-lucide="search" class="search-icon"></i>
-          <input type="text" id="order-search-input" placeholder="Search by Order #, Customer, or Carrier..." value="${searchOrderText}" />
+          <i data-lucide="search" class="search-icon" aria-hidden="true"></i>
+          <label for="order-search-input" class="sr-only">Search Orders</label>
+          <input type="search" id="order-search-input" placeholder="Search by Order #, Customer, or Carrier..." value="${searchOrderText}" />
         </div>
 
-        <div class="channel-pills">
+        <div class="toolbar-controls">
+          <!-- View Mode Toggle: Kanban / Table -->
+          <div class="view-mode-toggle" id="order-view-mode-toggle" role="group" aria-label="View format toggle">
+            <button type="button" class="btn-icon ${orderViewMode === "kanban" ? "active" : ""}" data-mode="kanban" title="Kanban Pipeline" aria-pressed="${orderViewMode === "kanban"}">
+              <i data-lucide="columns-3" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn-icon ${orderViewMode === "table" ? "active" : ""}" data-mode="table" title="Dense Orders Table" aria-pressed="${orderViewMode === "table"}">
+              <i data-lucide="list" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <fieldset class="channel-pills" role="group" aria-label="Filter by sales channel">
           ${channels
             .map(
               (ch) => `
-            <button class="pill-btn ${selectedChannel === ch ? "active" : ""}" data-channel="${ch}">
+            <button type="button" class="pill-btn ${selectedChannel === ch ? "active" : ""}" data-channel="${ch}" aria-pressed="${selectedChannel === ch}">
               ${ch}
             </button>
           `
             )
             .join("")}
-        </div>
-      </div>
+        </fieldset>
+      </nav>
 
-      <!-- Fulfillment Pipeline Kanban Board -->
-      <div class="kanban-pipeline-grid">
-        ${pipelineStages
-          .map((stage) => {
-            const stageOrders = filtered.filter((o) => o.status === stage.id);
-            return `
-            <div class="kanban-column">
-              <div class="kanban-column-header">
-                <div class="flex-center gap-xs">
-                  <i data-lucide="${stage.icon}" class="text-accent" style="width: 16px; height: 16px;"></i>
-                  <span class="kanban-title">${stage.label}</span>
-                </div>
-                <span class="badge ${stage.color}">${stageOrders.length}</span>
-              </div>
+      <!-- Content Display: Kanban Board or Table -->
+      ${
+        filtered.length === 0
+          ? `
+          <section class="empty-state-card" aria-label="No orders found">
+            <i data-lucide="shopping-bag" class="empty-icon" aria-hidden="true"></i>
+            <h3>No Orders Found</h3>
+            <p class="text-muted text-sm">No sales orders match your active filter or search query.</p>
+          </section>
+        `
+          : orderViewMode === "table"
+          ? `
+          <section class="table-container" aria-label="Sales Orders Registry">
+            <table class="data-table" role="table">
+              <thead>
+                <tr>
+                  <th scope="col">Order # & Customer</th>
+                  <th scope="col">Channel</th>
+                  <th scope="col">Warehouse Hub</th>
+                  <th scope="col">Items Ordered</th>
+                  <th scope="col" class="text-right">Order Total</th>
+                  <th scope="col">Fulfillment Status</th>
+                  <th scope="col">Carrier & Tracking</th>
+                  <th scope="col" class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered
+                  .map((ord) => {
+                    const wh = warehouses.find((w) => w.id === ord.warehouseId);
+                    const currentStage = pipelineStages.find((s) => s.id === ord.status) || pipelineStages[0];
+                    const itemCount = ord.items.reduce((sum, it) => sum + (it.quantity || 1), 0);
 
-              <div class="kanban-cards-stack">
-                ${
-                  stageOrders.length === 0
-                    ? `<div class="kanban-empty">No orders</div>`
-                    : stageOrders
-                        .map((ord) => {
-                          const wh = warehouses.find((w) => w.id === ord.warehouseId);
-                          return `
-                      <div class="order-kanban-card">
-                        <div class="flex-between">
-                          <span class="order-card-num font-mono font-bold">${ord.orderNumber}</span>
-                          <span class="badge badge-subtle text-xs">${ord.customer.channel}</span>
-                        </div>
-
-                        <div class="order-customer-info">
-                          <div class="font-bold text-sm">${ord.customer.name}</div>
-                          <div class="text-xs text-muted truncate">${ord.customer.shippingAddress}</div>
-                        </div>
-
-                        <div class="order-items-snippet">
-                          <div class="text-xs font-bold text-muted" style="margin-bottom: 2px;">ITEMS (${ord.items.length}):</div>
-                          ${ord.items
-                            .map((it) => {
-                              const p = products.find((prod) => prod.id === it.productId);
-                              return `<div class="text-xs truncate">&bull; ${it.quantity}x ${p?.name || it.productId}</div>`;
-                            })
-                            .join("")}
-                        </div>
-
-                        <div class="order-card-meta">
-                          <div class="text-xs">
-                            <span class="text-muted">Hub:</span> <strong>${wh?.city || ord.warehouseId}</strong>
+                    return `
+                      <tr>
+                        <td>
+                          <div>
+                            <span class="font-mono font-bold text-main">${ord.orderNumber}</span>
+                            <div class="text-xs text-muted" style="margin-top: 2px;">
+                              <button type="button" class="btn-customer-inspect" data-email="${ord.customer.email}" data-name="${ord.customer.name}" title="Inspect Customer Profile & History" style="background: none; border: none; padding: 0; color: var(--color-primary, #2563eb); font-weight: 700; cursor: pointer; text-decoration: underline;">${ord.customer.name}</button> &bull; ${ord.customer.shippingAddress || "Regional Delivery"}
+                            </div>
                           </div>
-                          <div class="text-xs">
-                            <span class="text-muted">Total:</span> <strong class="text-accent">$${ord.totalAmount.toFixed(2)}</strong>
+                        </td>
+                        <td>
+                          <span class="badge badge-subtle">${ord.customer.channel}</span>
+                        </td>
+                        <td>
+                          <span class="text-secondary font-medium">${wh?.name || ord.warehouseId}</span>
+                        </td>
+                        <td>
+                          <span class="font-medium">${itemCount} units</span>
+                          <span class="text-xs text-muted">(${ord.items.length} line items)</span>
+                        </td>
+                        <td class="text-right font-mono font-bold text-accent">
+                          $${ord.totalAmount.toFixed(2)}
+                        </td>
+                        <td>
+                          <span class="badge ${currentStage.color}">${ord.status}</span>
+                        </td>
+                        <td>
+                          <div class="font-mono text-xs">
+                            <span class="text-muted">${ord.carrier || "Standard Freight"}:</span>
+                            <span class="font-semibold">${ord.trackingNumber || "Pending"}</span>
                           </div>
-                        </div>
-
-                        ${
-                          ord.trackingNumber && ord.trackingNumber !== "Pending"
-                            ? `<div class="order-tracking-badge text-xs font-mono">
-                                <i data-lucide="map-pin" style="width: 12px; height: 12px;"></i>
-                                <span>${ord.trackingNumber}</span>
-                              </div>`
-                            : ""
-                        }
-
-                        <div class="order-card-actions">
-                          <button class="btn btn-ghost btn-xs btn-view-slip" data-id="${ord.id}" title="View & Print Packing Slip">
-                            <i data-lucide="file-text"></i>
-                            <span>Slip</span>
-                          </button>
-
-                          ${
-                            stage.next
-                              ? `
-                            <button class="btn btn-primary btn-xs btn-advance-order" data-id="${ord.id}" data-next="${stage.next}">
-                              <span>${stage.btnText}</span>
-                              <i data-lucide="chevron-right"></i>
+                        </td>
+                        <td class="text-right">
+                          <div class="row-actions-group">
+                            <button type="button" class="btn btn-ghost btn-xs btn-view-slip" data-id="${ord.id}" title="View & Print Packing Slip">
+                              <i data-lucide="file-text"></i>
+                              <span>Slip</span>
                             </button>
-                          `
-                              : `<span class="badge badge-success text-xs">Complete</span>`
-                          }
-                        </div>
-                      </div>
+                            ${
+                              currentStage.next
+                                ? `
+                              <button type="button" class="btn btn-primary btn-xs btn-advance-order" data-id="${ord.id}" data-next="${currentStage.next}">
+                                <span>${currentStage.btnText}</span>
+                                <i data-lucide="chevron-right"></i>
+                              </button>
+                            `
+                                : `<span class="badge badge-success text-xs">Delivered</span>`
+                            }
+                          </div>
+                        </td>
+                      </tr>
                     `;
-                        })
-                        .join("")
-                }
-              </div>
-            </div>
-          `;
-          })
-          .join("")}
-      </div>
+                  })
+                  .join("")}
+              </tbody>
+            </table>
+          </section>
+        `
+          : `
+          <!-- Fulfillment Pipeline Kanban Board -->
+          <section class="kanban-pipeline-grid" aria-label="Fulfillment Pipeline Kanban Board">
+            ${pipelineStages
+              .map((stage) => {
+                const stageOrders = filtered.filter((o) => o.status === stage.id);
+                return `
+                <article class="kanban-column" role="region" aria-label="${stage.label}">
+                  <header class="kanban-column-header">
+                    <div class="flex-center gap-xs">
+                      <i data-lucide="${stage.icon}" class="text-accent" style="width: 16px; height: 16px;" aria-hidden="true"></i>
+                      <h3 class="kanban-title">${stage.label}</h3>
+                    </div>
+                    <span class="badge ${stage.color}">${stageOrders.length}</span>
+                  </header>
+
+                  <div class="kanban-cards-stack">
+                    ${
+                      stageOrders.length === 0
+                        ? `<div class="kanban-empty">No orders</div>`
+                        : stageOrders
+                            .map((ord) => {
+                              const wh = warehouses.find((w) => w.id === ord.warehouseId);
+                              return `
+                          <article class="order-kanban-card" role="article" aria-label="Order ${ord.orderNumber}">
+                            <header class="flex-between">
+                              <span class="order-card-num font-mono font-bold">${ord.orderNumber}</span>
+                              <span class="badge badge-subtle text-xs">${ord.customer.channel}</span>
+                            </header>
+
+                            <div class="order-customer-info">
+                              <button type="button" class="btn-customer-inspect font-bold text-sm" data-email="${ord.customer.email}" data-name="${ord.customer.name}" title="Inspect Customer Profile & History" style="background: none; border: none; padding: 0; color: var(--color-primary, #2563eb); cursor: pointer; text-align: left; text-decoration: underline;">${ord.customer.name}</button>
+                              <div class="text-xs text-muted truncate">${ord.customer.shippingAddress}</div>
+                            </div>
+
+                            <div class="order-items-snippet">
+                              <div class="text-xs font-bold text-muted" style="margin-bottom: 2px;">ITEMS (${ord.items.length}):</div>
+                              ${ord.items
+                                .map((it) => {
+                                  const p = products.find((prod) => prod.id === it.productId);
+                                  return `<div class="text-xs truncate">&bull; ${it.quantity}x ${p?.name || it.productId}</div>`;
+                                })
+                                .join("")}
+                            </div>
+
+                            <div class="order-card-meta">
+                              <div class="text-xs">
+                                <span class="text-muted">Hub:</span> <strong>${wh?.city || ord.warehouseId}</strong>
+                              </div>
+                              <div class="text-xs">
+                                <span class="text-muted">Total:</span> <strong class="text-accent">$${ord.totalAmount.toFixed(2)}</strong>
+                              </div>
+                            </div>
+
+                            ${
+                              ord.trackingNumber && ord.trackingNumber !== "Pending"
+                                ? `<div class="order-tracking-badge text-xs font-mono">
+                                    <i data-lucide="map-pin" style="width: 12px; height: 12px;" aria-hidden="true"></i>
+                                    <span>${ord.trackingNumber}</span>
+                                  </div>`
+                                : ""
+                            }
+
+                            <footer class="order-card-actions">
+                              <button type="button" class="btn btn-ghost btn-xs btn-view-slip" data-id="${ord.id}" title="View & Print Packing Slip">
+                                <i data-lucide="file-text" aria-hidden="true"></i>
+                                <span>Slip</span>
+                              </button>
+
+                              ${
+                                stage.next
+                                  ? `
+                                <button type="button" class="btn btn-primary btn-xs btn-advance-order" data-id="${ord.id}" data-next="${stage.next}">
+                                  <span>${stage.btnText}</span>
+                                  <i data-lucide="chevron-right" aria-hidden="true"></i>
+                                </button>
+                              `
+                                  : `<span class="badge badge-success text-xs">Complete</span>`
+                              }
+                            </footer>
+                          </article>
+                        `;
+                            })
+                            .join("")
+                    }
+                  </div>
+                </article>
+              `;
+              })
+              .join("")}
+          </section>
+        `
+      }
     </div>
   `;
 }
 
 export function setupOrdersEvents(onRefresh) {
+  // View mode toggle
+  document.querySelectorAll("#order-view-mode-toggle button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.mode;
+      if (mode && mode !== orderViewMode) {
+        orderViewMode = mode;
+        localStorage.setItem("rims_orders_view_mode", mode);
+        onRefresh();
+      }
+    });
+  });
+
   // Create order button
   const createBtn = document.getElementById("btn-create-order-view");
   if (createBtn) {
@@ -211,6 +331,17 @@ export function setupOrdersEvents(onRefresh) {
   document.querySelectorAll(".btn-view-slip").forEach((btn) => {
     btn.addEventListener("click", () => {
       modals.openPackingSlipModal(btn.dataset.id);
+    });
+  });
+
+  // Inspect Customer Profile & History
+  document.querySelectorAll(".btn-customer-inspect").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      modals.openCustomerModal({
+        name: btn.dataset.name,
+        email: btn.dataset.email
+      });
     });
   });
 }

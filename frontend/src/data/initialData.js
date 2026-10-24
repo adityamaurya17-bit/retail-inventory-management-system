@@ -743,28 +743,63 @@ export const initialAuditLogs = [
     timestamp: "2026-09-28 11:30:22",
     action: "GRN_RECEIVED",
     user: "Marcus Vance (WH Manager)",
-    details: "Dock receipt confirmed for PO-88201. Added 50x ELEC-ANC-001 & 50x ELEC-KB-002 to WH-CHI."
+    details: "Dock receipt confirmed for PO-88201. Added 50x ELEC-ANC-001 & 50x ELEC-KB-002 to WH-CHI (Bin A-01-01)."
   },
   {
     id: "LOG-5003",
     timestamp: "2026-09-28 10:15:00",
     action: "ORDER_STATUS_CHANGE",
-    user: "Elena Rostova",
-    details: "Order SO-7003 transitioned from Packed to Dispatched via DHL Freight."
+    user: "Elena Rostova (Fulfillment Lead)",
+    details: "Order SO-7003 transitioned from 'Packed' to 'Dispatched' via DHL Freight (Tracking: DHL-481902847)."
   },
   {
     id: "LOG-5004",
     timestamp: "2026-09-28 09:00:15",
     action: "TRANSFER_DISPATCHED",
     user: "Logistics Coordinator",
-    details: "Transfer TO-2026-03 dispatched 40 units from WH-LAX to WH-EWR."
+    details: "Stock transfer TO-2026-03 dispatched 40 units (15x PROD-1009, 25x PROD-1010) from WH-LAX to WH-EWR."
   },
   {
     id: "LOG-5005",
     timestamp: "2026-09-27 17:20:44",
     action: "CYCLE_COUNT_ADJUSTMENT",
     user: "David Chen (East Coast Hub)",
-    details: "Cycle count adjustment on ELEC-KB-002: +2 units reconciled (Bin A-02-01)."
+    details: "Cycle count variance reconciled on ELEC-KB-002: +2 units adjusted at WH-EWR (Bin A-02-01). Variance impact: +$130.00."
+  },
+  {
+    id: "LOG-5006",
+    timestamp: "2026-09-27 15:42:18",
+    action: "PO_CREATED",
+    user: "Procurement Specialist",
+    details: "Issued purchase order PO-88204 to AeroFit Apparel Ltd for $5,175.00 scheduled for delivery to WH-EWR."
+  },
+  {
+    id: "LOG-5007",
+    timestamp: "2026-09-27 14:10:05",
+    action: "ORDER_CREATED",
+    user: "Omnichannel API Gateway",
+    details: "Customer sales order SO-7002 ($718.00) created for Dr. Evelyn Reed with 2 line items at WH-CHI."
+  },
+  {
+    id: "LOG-5008",
+    timestamp: "2026-09-27 11:05:30",
+    action: "PRODUCT_CREATED",
+    user: "ADITYA MAURYA (Catalog Mgr)",
+    details: "Registered new master SKU ELEC-WTC-012 (PulseFit GPS Rugged Smartwatch) under Electronics category."
+  },
+  {
+    id: "LOG-5009",
+    timestamp: "2026-09-26 16:55:12",
+    action: "TRANSFER_COMPLETED",
+    user: "Dallas Receiving Agent",
+    details: "Inter-warehouse stock transfer TO-2026-02 received and verified at WH-DFW. Ingested 120 units."
+  },
+  {
+    id: "LOG-5010",
+    timestamp: "2026-09-26 09:22:40",
+    action: "STOCK_ADJUSTED",
+    user: "Safety & QA Officer",
+    details: "Quarantine transfer for 1x HOME-AP-008 due to packaging inspection hold in Chicago (Bin D-01-01)."
   }
 ];
 

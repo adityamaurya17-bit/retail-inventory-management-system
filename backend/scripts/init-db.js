@@ -17,54 +17,66 @@ const dbPassword = process.env.DB_PASSWORD || 'postgres';
 const dbName = process.env.DB_NAME || 'retail_inventory_db';
 
 async function initDatabase() {
-  console.log(`\n=== 1. Connecting to PostgreSQL server at ${dbHost}:${dbPort} as '${dbUser}' ===`);
+  const isCloudUrl = !!process.env.DATABASE_URL;
+  let appClient;
 
-  // First connect to default 'postgres' database to create the target DB if it doesn't exist
-  const serverClient = new Client({
-    host: dbHost,
-    port: dbPort,
-    user: dbUser,
-    password: dbPassword,
-    database: 'postgres',
-  });
+  if (isCloudUrl) {
+    console.log(`\n=== 1. Cloud PostgreSQL detected via DATABASE_URL ===`);
+    const isLocalhost = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+    appClient = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: isLocalhost ? false : { rejectUnauthorized: false }
+    });
+  } else {
+    console.log(`\n=== 1. Connecting to PostgreSQL server at ${dbHost}:${dbPort} as '${dbUser}' ===`);
 
-  try {
-    await serverClient.connect();
-    console.log('✓ Successfully connected to PostgreSQL server.');
+    // First connect to default 'postgres' database to create the target DB if it doesn't exist
+    const serverClient = new Client({
+      host: dbHost,
+      port: dbPort,
+      user: dbUser,
+      password: dbPassword,
+      database: 'postgres',
+    });
 
-    // Check if target database exists
-    const checkDbRes = await serverClient.query(
-      `SELECT 1 FROM pg_database WHERE datname = $1;`,
-      [dbName]
-    );
+    try {
+      await serverClient.connect();
+      console.log('✓ Successfully connected to PostgreSQL server.');
 
-    if (checkDbRes.rowCount === 0) {
-      console.log(`Creating database '${dbName}'...`);
-      await serverClient.query(`CREATE DATABASE "${dbName}";`);
-      console.log(`✓ Database '${dbName}' created.`);
-    } else {
-      console.log(`✓ Database '${dbName}' already exists.`);
+      // Check if target database exists
+      const checkDbRes = await serverClient.query(
+        `SELECT 1 FROM pg_database WHERE datname = $1;`,
+        [dbName]
+      );
+
+      if (checkDbRes.rowCount === 0) {
+        console.log(`Creating database '${dbName}'...`);
+        await serverClient.query(`CREATE DATABASE "${dbName}";`);
+        console.log(`✓ Database '${dbName}' created.`);
+      } else {
+        console.log(`✓ Database '${dbName}' already exists.`);
+      }
+    } catch (err) {
+      console.error('✗ Connection or database creation failed:', err.message);
+      if (err.code === '28P01') {
+        console.error('\n[HINT] PostgreSQL password authentication failed.');
+        console.error(`Please update DB_PASSWORD in backend/.env with your PostgreSQL 'postgres' user password.`);
+      }
+      process.exit(1);
+    } finally {
+      await serverClient.end();
     }
-  } catch (err) {
-    console.error('✗ Connection or database creation failed:', err.message);
-    if (err.code === '28P01') {
-      console.error('\n[HINT] PostgreSQL password authentication failed.');
-      console.error(`Please update DB_PASSWORD in backend/.env with your PostgreSQL 'postgres' user password.`);
-    }
-    process.exit(1);
-  } finally {
-    await serverClient.end();
+
+    // Connect directly to the target application database
+    console.log(`\n=== 2. Connecting to application database '${dbName}' ===`);
+    appClient = new Client({
+      host: dbHost,
+      port: dbPort,
+      user: dbUser,
+      password: dbPassword,
+      database: dbName,
+    });
   }
-
-  // Connect directly to the target application database
-  console.log(`\n=== 2. Connecting to application database '${dbName}' ===`);
-  const appClient = new Client({
-    host: dbHost,
-    port: dbPort,
-    user: dbUser,
-    password: dbPassword,
-    database: dbName,
-  });
 
   try {
     await appClient.connect();

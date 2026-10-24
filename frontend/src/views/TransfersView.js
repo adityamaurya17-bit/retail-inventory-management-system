@@ -11,71 +11,72 @@ export function renderTransfersView() {
 
   return `
     <div class="view-container animate-fade-in">
-      <div class="view-header">
+      <!-- Semantic View Header -->
+      <header class="view-header flex-between flex-wrap gap-sm">
         <div>
           <h1 class="view-title">Inter-Warehouse Stock Transfers (STO)</h1>
           <p class="view-subtitle">Relocate inventory between regional fulfillment nodes, manage in-transit pipeline & reconcile arrivals</p>
         </div>
         <div class="header-actions">
-          <button id="btn-create-transfer-view" class="btn btn-primary btn-sm">
-            <i data-lucide="plus-circle"></i>
+          <button type="button" id="btn-create-transfer-view" class="btn btn-primary btn-sm">
+            <i data-lucide="plus-circle" aria-hidden="true"></i>
             <span>Create Transfer Order</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <!-- Quick Metrics Grid -->
-      <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-title">Active In-Transit Transfers</span>
-            <div class="kpi-icon icon-blue"><i data-lucide="truck"></i></div>
-          </div>
-          <div class="kpi-value text-accent">${transfers.filter((t) => t.status === "In-Transit").length} <span class="text-sm font-normal text-muted">Shipments</span></div>
-          <div class="kpi-footer text-muted">Currently moving via dedicated freight</div>
-        </div>
+      <!-- Semantic Quick Metrics Grid -->
+      <section class="stats-grid" style="grid-template-columns: repeat(3, 1fr);" aria-label="Transfer Key Metrics">
+        <article class="stat-card" role="region" aria-label="Active In-Transit Transfers">
+          <header class="stat-card-header flex-between">
+            <h2 class="stat-label">Active In-Transit Transfers</h2>
+            <div class="stat-icon-wrap icon-primary" aria-hidden="true"><i data-lucide="truck"></i></div>
+          </header>
+          <p class="stat-value font-mono text-accent">${transfers.filter((t) => t.status === "In-Transit").length} <span class="text-sm font-normal text-muted">Shipments</span></p>
+          <footer class="stat-trend text-muted text-xxs">Currently moving via dedicated freight</footer>
+        </article>
 
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-title">Completed Reallocations</span>
-            <div class="kpi-icon icon-emerald"><i data-lucide="check-circle-2"></i></div>
-          </div>
-          <div class="kpi-value text-success">${transfers.filter((t) => t.status === "Completed").length} <span class="text-sm font-normal text-muted">Orders</span></div>
-          <div class="kpi-footer text-muted">Successfully ingested at destination</div>
-        </div>
+        <article class="stat-card" role="region" aria-label="Completed Reallocations">
+          <header class="stat-card-header flex-between">
+            <h2 class="stat-label">Completed Reallocations</h2>
+            <div class="stat-icon-wrap icon-success" aria-hidden="true"><i data-lucide="check-circle-2"></i></div>
+          </header>
+          <p class="stat-value font-mono text-success">${transfers.filter((t) => t.status === "Completed").length} <span class="text-sm font-normal text-muted">Orders</span></p>
+          <footer class="stat-trend text-success text-xxs font-semibold">Successfully ingested at destination</footer>
+        </article>
 
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-title">Scheduled Drafts</span>
-            <div class="kpi-icon icon-purple"><i data-lucide="calendar"></i></div>
-          </div>
-          <div class="kpi-value">${transfers.filter((t) => t.status === "Draft").length} <span class="text-sm font-normal text-muted">Awaiting Dispatch</span></div>
-          <div class="kpi-footer text-muted">Planned seasonal rebalancing</div>
-        </div>
-      </div>
+        <article class="stat-card" role="region" aria-label="Scheduled Drafts">
+          <header class="stat-card-header flex-between">
+            <h2 class="stat-label">Scheduled Drafts</h2>
+            <div class="stat-icon-wrap icon-accent" aria-hidden="true"><i data-lucide="calendar"></i></div>
+          </header>
+          <p class="stat-value font-mono">${transfers.filter((t) => t.status === "Draft").length} <span class="text-sm font-normal text-muted">Awaiting Dispatch</span></p>
+          <footer class="stat-trend text-muted text-xxs">Planned seasonal rebalancing</footer>
+        </article>
+      </section>
 
-      <!-- Transfer Orders Table -->
-      <div class="content-card">
-        <div class="card-header flex-between">
-          <div class="flex-center gap-sm">
-            <i data-lucide="repeat" class="text-accent"></i>
-            <h3 class="card-title">Transfer Orders Ledger</h3>
+      <!-- Semantic Transfer Orders Table Section -->
+      <section class="content-card" aria-label="Transfer Orders Ledger">
+        <header class="card-header flex-between">
+          <div class="flex-align-center gap-sm">
+            <i data-lucide="repeat" class="text-accent" aria-hidden="true"></i>
+            <h2 class="card-title">Transfer Orders Ledger</h2>
           </div>
-          <span class="badge badge-subtle">Regional Rebalancing</span>
-        </div>
+          <span class="badge badge-subtle font-mono">Regional Rebalancing</span>
+        </header>
 
         <div class="table-responsive">
-          <table class="data-table">
+          <table class="data-table" role="table">
             <thead>
               <tr>
-                <th>Transfer Order #</th>
-                <th>Origin Facility</th>
-                <th>Route Direction</th>
-                <th>Destination Facility</th>
-                <th>Items & Quantities</th>
-                <th>Carrier & Tracking</th>
-                <th>Status</th>
-                <th>Reconciliation Action</th>
+                <th scope="col">Transfer Order #</th>
+                <th scope="col">Origin Facility</th>
+                <th scope="col">Route Direction</th>
+                <th scope="col">Destination Facility</th>
+                <th scope="col">Items & Quantities</th>
+                <th scope="col">Carrier & Tracking</th>
+                <th scope="col">Status</th>
+                <th scope="col">Reconciliation Action</th>
               </tr>
             </thead>
             <tbody>
@@ -95,14 +96,14 @@ export function renderTransfersView() {
                     <tr>
                       <td>
                         <div class="font-mono font-bold">${trf.transferNumber}</div>
-                        <div class="text-xs text-muted">Date: ${trf.date}</div>
+                        <div class="text-xs text-muted"><time>Date: ${trf.date}</time></div>
                       </td>
                       <td>
                         <div class="font-bold">${originWh?.city || trf.fromWarehouseId}</div>
                         <div class="text-xs text-muted font-mono">${originWh?.code}</div>
                       </td>
                       <td>
-                        <div class="transfer-arrow-route text-accent">➔</div>
+                        <div class="transfer-arrow-route text-accent" aria-hidden="true">➔</div>
                       </td>
                       <td>
                         <div class="font-bold">${destWh?.city || trf.toWarehouseId}</div>
@@ -127,12 +128,12 @@ export function renderTransfersView() {
                       <td>
                         ${
                           trf.status === "In-Transit"
-                            ? `<button class="btn btn-success btn-xs btn-complete-transfer" data-id="${trf.id}">
-                                <i data-lucide="check-check"></i>
+                            ? `<button type="button" class="btn btn-success btn-xs btn-complete-transfer" data-id="${trf.id}">
+                                <i data-lucide="check-check" aria-hidden="true"></i>
                                 <span>Receive at Hub</span>
                               </button>`
                             : trf.status === "Draft"
-                            ? `<button class="btn btn-primary btn-xs btn-dispatch-draft" data-id="${trf.id}">Dispatch</button>`
+                            ? `<button type="button" class="btn btn-primary btn-xs btn-dispatch-draft" data-id="${trf.id}">Dispatch</button>`
                             : `<span class="badge badge-success text-xs">Reconciled</span>`
                         }
                       </td>
@@ -144,7 +145,7 @@ export function renderTransfersView() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   `;
 }

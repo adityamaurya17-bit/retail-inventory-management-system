@@ -16,21 +16,21 @@ export function renderWarehouseView() {
 
   return `
     <div class="view-container animate-fade-in">
-      <div class="view-header">
+      <header class="view-header flex-between flex-wrap gap-sm">
         <div>
           <h1 class="view-title">Multi-Warehouse Inventory & Bin Topology</h1>
           <p class="view-subtitle">Dynamic facility modeling, spatial zone bin coordinates, and real-time ATP stock balances</p>
         </div>
         <div class="header-actions">
-          <button id="btn-wh-transfer" class="btn btn-secondary btn-sm">
-            <i data-lucide="arrow-left-right"></i>
+          <button type="button" id="btn-wh-transfer" class="btn btn-secondary btn-sm">
+            <i data-lucide="arrow-left-right" aria-hidden="true"></i>
             <span>Inter-Warehouse Transfer</span>
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Facility Selector Tabs -->
-      <div class="warehouse-selector-grid">
+      <nav class="warehouse-selector-grid" aria-label="Facility Selector">
         ${warehouses
           .map((wh) => {
             const util = store.getWarehouseUtilization(wh.id);
@@ -57,12 +57,12 @@ export function renderWarehouseView() {
           `;
           })
           .join("")}
-      </div>
+      </nav>
 
       <!-- Facility Details & Zone Map Split -->
-      <div class="facility-details-banner">
+      <section class="facility-details-banner" aria-label="Facility Profile">
         <div class="facility-info-pane">
-          <h3>${currentWh.name} <span class="badge badge-accent">${currentWh.code}</span></h3>
+          <h3>${currentWh.name} <span class="badge badge-accent font-mono">${currentWh.code}</span></h3>
           <p class="text-muted text-sm">${currentWh.address}</p>
           <div class="contact-line text-xs">
             <span><strong>Facility Manager:</strong> ${currentWh.manager}</span>
@@ -85,20 +85,20 @@ export function renderWarehouseView() {
             <span class="val text-accent">${utilization.usedUnits.toLocaleString()}</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Interactive Spatial Bin Map -->
-      <div class="content-card" style="margin-bottom: 24px;">
-        <div class="card-header flex-between">
+      <section class="content-card" style="margin-bottom: 24px;" aria-label="Spatial Warehouse Bin Topology">
+        <header class="card-header flex-between">
           <div class="flex-center gap-sm">
-            <i data-lucide="grid" class="text-accent"></i>
+            <i data-lucide="grid" class="text-accent" aria-hidden="true"></i>
             <div>
-              <h3 class="card-title">Spatial Warehouse Bin Topology</h3>
+              <h2 class="card-title">Spatial Warehouse Bin Topology</h2>
               <p class="card-subtitle text-xs text-muted">Click any bin coordinate to perform a rapid spot cycle count</p>
             </div>
           </div>
-          <span class="badge badge-subtle">Zone Coordinate Addressing</span>
-        </div>
+          <span class="badge badge-subtle font-mono">Zone Coordinate Addressing</span>
+        </header>
 
         <div class="zones-container">
           ${currentWh.zones
@@ -143,30 +143,30 @@ export function renderWarehouseView() {
             })
             .join("")}
         </div>
-      </div>
+      </section>
 
-      <!-- Warehouse Inventory Table -->
-      <div class="content-card">
-        <div class="card-header flex-between">
+      <!-- Semantic Warehouse Inventory Table Section -->
+      <section class="content-card" aria-label="Facility On-Hand Stock Ledger">
+        <header class="card-header flex-between">
           <div class="flex-center gap-sm">
-            <i data-lucide="table" class="text-accent"></i>
-            <h3 class="card-title">Facility On-Hand Stock Ledger</h3>
+            <i data-lucide="table" class="text-accent" aria-hidden="true"></i>
+            <h2 class="card-title">Facility On-Hand Stock Ledger</h2>
           </div>
-          <span class="badge badge-subtle">${whStock.length} Product Records</span>
-        </div>
+          <span class="badge badge-subtle font-mono">${whStock.length} Product Records</span>
+        </header>
 
         <div class="table-responsive">
-          <table class="data-table">
+          <table class="data-table" role="table">
             <thead>
               <tr>
-                <th>Product / SKU</th>
-                <th>Bin Coordinate</th>
-                <th>Batch / Lot #</th>
-                <th>Stock on Hand</th>
-                <th>Reserved</th>
-                <th>Available to Promise</th>
-                <th>Status</th>
-                <th>Reconcile</th>
+                <th scope="col">Product / SKU</th>
+                <th scope="col">Bin Coordinate</th>
+                <th scope="col">Batch / Lot #</th>
+                <th scope="col">Stock on Hand</th>
+                <th scope="col">Reserved</th>
+                <th scope="col">Available to Promise</th>
+                <th scope="col">Status</th>
+                <th scope="col">Reconcile</th>
               </tr>
             </thead>
             <tbody>
@@ -200,8 +200,8 @@ export function renderWarehouseView() {
                       }
                     </td>
                     <td>
-                      <button class="btn btn-secondary btn-xs btn-spot-count" data-prod-id="${stk.productId}" data-wh-id="${currentWh.id}" data-bin="${stk.bin}">
-                        <i data-lucide="clipboard-check"></i>
+                      <button type="button" class="btn btn-secondary btn-xs btn-spot-count" data-prod-id="${stk.productId}" data-wh-id="${currentWh.id}" data-bin="${stk.bin}">
+                        <i data-lucide="clipboard-check" aria-hidden="true"></i>
                         <span>Audit Count</span>
                       </button>
                     </td>
@@ -213,7 +213,7 @@ export function renderWarehouseView() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   `;
 }

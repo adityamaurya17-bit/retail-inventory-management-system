@@ -3,23 +3,30 @@
  * Base URL: http://localhost:5000/api
  */
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : '/api'
+);
 
 class ApiClient {
   constructor() {
-    this.token = localStorage.getItem('rims_jwt_token') || null;
-    this.currentUser = JSON.parse(localStorage.getItem('rims_current_user') || 'null');
+    const isRemembered = localStorage.getItem('rims_remember_me') === 'true';
+    this.token = isRemembered ? (localStorage.getItem('rims_jwt_token') || null) : null;
+    this.currentUser = isRemembered ? JSON.parse(localStorage.getItem('rims_current_user') || 'null') : null;
   }
 
-  setSession(token, user) {
+  setSession(token, user, rememberMe = false) {
     this.token = token;
     this.currentUser = user;
-    if (token) {
+    if (token && rememberMe) {
       localStorage.setItem('rims_jwt_token', token);
       localStorage.setItem('rims_current_user', JSON.stringify(user));
+      localStorage.setItem('rims_remember_me', 'true');
     } else {
       localStorage.removeItem('rims_jwt_token');
       localStorage.removeItem('rims_current_user');
+      localStorage.removeItem('rims_remember_me');
     }
   }
 
@@ -67,13 +74,13 @@ class ApiClient {
   }
 
   // --- Auth APIs ---
-  async login(email, password) {
+  async login(email, password, rememberMe = false) {
     const res = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
     });
     if (res.success && res.data) {
-      this.setSession(res.data.token, res.data.user);
+      this.setSession(res.data.token, res.data.user, rememberMe);
     }
     return res;
   }
@@ -83,7 +90,7 @@ class ApiClient {
   }
 
   logout() {
-    this.setSession(null, null);
+    this.setSession(null, null, false);
   }
 
   // --- Products APIs ---

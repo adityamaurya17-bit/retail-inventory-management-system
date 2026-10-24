@@ -1,0 +1,24 @@
+databases:
+  - name: stockora-postgres
+    databaseName: retail_inventory_db
+    user: stockora_user
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: stockora
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm run init-db && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stockora-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true

@@ -6,10 +6,7 @@
 
 -- 1. Insert Roles
 INSERT INTO roles (id, name) VALUES 
-(1, 'Admin'),
-(2, 'Inventory Manager'),
-(3, 'Sales Manager'),
-(4, 'Supplier Manager')
+(1, 'Admin')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- Reset sequence for roles
@@ -17,10 +14,7 @@ SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));
 
 -- 2. Insert Users (Password: Password123!)
 INSERT INTO users (id, name, email, password_hash, role_id) VALUES
-(1, 'Aarav Sharma', 'admin@retailhub.in', '$2b$10$i8WXiDDh7y8rbDp8J7GheuL1UWjQ6.9s4xdkm2TaWF4B0TO4RzUD2', 1),
-(2, 'Priya Patel', 'inventory@retailhub.in', '$2b$10$i8WXiDDh7y8rbDp8J7GheuL1UWjQ6.9s4xdkm2TaWF4B0TO4RzUD2', 2),
-(3, 'Rohan Verma', 'sales@retailhub.in', '$2b$10$i8WXiDDh7y8rbDp8J7GheuL1UWjQ6.9s4xdkm2TaWF4B0TO4RzUD2', 3),
-(4, 'Ananya Iyer', 'supplier@retailhub.in', '$2b$10$i8WXiDDh7y8rbDp8J7GheuL1UWjQ6.9s4xdkm2TaWF4B0TO4RzUD2', 4)
+(1, 'ADITYA MAURYA', 'adityamaurya@retailhub.in', '$2b$10$i8WXiDDh7y8rbDp8J7GheuL1UWjQ6.9s4xdkm2TaWF4B0TO4RzUD2', 1)
 ON CONFLICT (email) DO UPDATE SET 
   name = EXCLUDED.name,
   password_hash = EXCLUDED.password_hash,
@@ -199,11 +193,11 @@ ON CONFLICT (supplier_id, product_id) DO UPDATE SET supplier_price = EXCLUDED.su
 
 -- 10. Insert Sample Sales Orders & Items
 INSERT INTO orders (id, customer_id, warehouse_id, status, total_amount, created_by) VALUES
-(1, 1, 3, 'DELIVERED', 13498.00, 3),
-(2, 2, 1, 'SHIPPED', 7298.00, 3),
-(3, 3, 1, 'PACKED', 9999.00, 3),
-(4, 4, 2, 'RESERVED', 6498.00, 3),
-(5, 5, 3, 'CREATED', 4198.00, 3)
+(1, 1, 3, 'DELIVERED', 13498.00, 1),
+(2, 2, 1, 'SHIPPED', 7298.00, 1),
+(3, 3, 1, 'PACKED', 9999.00, 1),
+(4, 4, 2, 'RESERVED', 6498.00, 1),
+(5, 5, 3, 'CREATED', 4198.00, 1)
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, total_amount = EXCLUDED.total_amount;
 
 SELECT setval('orders_id_seq', (SELECT MAX(id) FROM orders));
@@ -222,9 +216,9 @@ ON CONFLICT (order_id, product_id) DO NOTHING;
 
 -- 11. Insert Sample Purchase Orders & Items
 INSERT INTO purchase_orders (id, supplier_id, warehouse_id, status, total_amount, expected_date, created_by) VALUES
-(1, 1, 1, 'RECEIVED', 260000.00, '2026-09-20', 4),
-(2, 2, 2, 'ORDERED', 116000.00, '2026-10-05', 4),
-(3, 3, 1, 'PENDING', 35000.00, '2026-10-02', 4)
+(1, 1, 1, 'RECEIVED', 260000.00, '2026-09-20', 1),
+(2, 2, 2, 'ORDERED', 116000.00, '2026-10-05', 1),
+(3, 3, 1, 'PENDING', 35000.00, '2026-10-02', 1)
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, total_amount = EXCLUDED.total_amount;
 
 SELECT setval('purchase_orders_id_seq', (SELECT MAX(id) FROM purchase_orders));
@@ -235,17 +229,26 @@ INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, unit_
 (3, 11, 100, 350.00, 35000.00)
 ON CONFLICT (purchase_order_id, product_id) DO NOTHING;
 
--- 12. Insert Sample Stock Movement Audit Logs
-INSERT INTO stock_movements (product_id, warehouse_id, movement_type, quantity, reference_id, notes, performed_by) VALUES
-(1, 1, 'PURCHASE', 50, 'PO-0001', 'Received inbound batch from Apex Electronics', 2),
-(1, 3, 'SALE', 1, 'ORD-0001', 'Dispatched to customer Rajesh Kannan', 3),
-(2, 1, 'TRANSFER_OUT', 10, 'TRF-1001', 'Transferred to Delhi NCR Northern Hub for regional rebalance', 2),
-(2, 2, 'TRANSFER_IN', 10, 'TRF-1001', 'Ingested transfer stock at Delhi Hub', 2),
-(7, 1, 'ADJUSTMENT', 2, 'ADJ-001', 'Cycle count reconciliation: found 2 surplus units in Row C', 2);
+-- 12. Insert Sample Stock Movement Audit Logs (if none exist)
+INSERT INTO stock_movements (product_id, warehouse_id, movement_type, quantity, reference_id, notes, performed_by)
+SELECT d.product_id, d.warehouse_id, d.movement_type, d.quantity, d.reference_id, d.notes, d.performed_by
+FROM (VALUES
+  (1, 1, 'PURCHASE', 50, 'PO-0001', 'Received inbound batch from Apex Electronics', 1),
+  (1, 3, 'SALE', 1, 'ORD-0001', 'Dispatched to customer Rajesh Kannan', 1),
+  (2, 1, 'TRANSFER_OUT', 10, 'TRF-1001', 'Transferred to Delhi NCR Northern Hub for regional rebalance', 1),
+  (2, 2, 'TRANSFER_IN', 10, 'TRF-1001', 'Ingested transfer stock at Delhi Hub', 1),
+  (7, 1, 'ADJUSTMENT', 2, 'ADJ-001', 'Cycle count reconciliation: found 2 surplus units in Row C', 1)
+) AS d(product_id, warehouse_id, movement_type, quantity, reference_id, notes, performed_by)
+WHERE NOT EXISTS (SELECT 1 FROM stock_movements LIMIT 1);
 
--- 13. Insert Notifications
-INSERT INTO notifications (user_id, type, title, message, is_read) VALUES
-(2, 'LOW_STOCK', 'Low Stock Alert: VortexPro Keyboard', 'Delhi NCR Northern Hub has only 8 units remaining (reorder level: 20).', FALSE),
-(2, 'LOW_STOCK', 'Low Stock Alert: PureBreeze Air Purifier', 'Delhi NCR Northern Hub has only 10 units remaining (reorder level: 15).', FALSE),
-(3, 'ORDER_CREATED', 'New Order Received #ORD-0005', 'Customer Suresh Reddy placed an order totaling Rs 4,198.00.', FALSE),
-(4, 'PO_RECEIVED', 'Purchase Order Fulfilled #PO-0001', 'Bhiwandi Central DC received 50 units of AuraSound Neo ANC Headphones.', TRUE);
+-- 13. Insert Notifications (if none exist)
+INSERT INTO notifications (user_id, type, title, message, is_read)
+SELECT d.user_id, d.type, d.title, d.message, d.is_read
+FROM (VALUES
+  (1, 'LOW_STOCK', 'Low Stock Alert: VortexPro Keyboard', 'Delhi NCR Northern Hub has only 8 units remaining (reorder level: 20).', FALSE),
+  (1, 'LOW_STOCK', 'Low Stock Alert: PureBreeze Air Purifier', 'Delhi NCR Northern Hub has only 10 units remaining (reorder level: 15).', FALSE),
+  (1, 'ORDER_CREATED', 'New Order Received #ORD-0005', 'Customer Suresh Reddy placed an order totaling Rs 4,198.00.', FALSE),
+  (1, 'PO_RECEIVED', 'Purchase Order Fulfilled #PO-0001', 'Bhiwandi Central DC received 50 units of AuraSound Neo ANC Headphones.', TRUE)
+) AS d(user_id, type, title, message, is_read)
+WHERE NOT EXISTS (SELECT 1 FROM notifications LIMIT 1);
+

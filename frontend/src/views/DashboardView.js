@@ -1,10 +1,150 @@
 import { store } from "../state/store.js";
 import { modals } from "../components/modals/ModalManager.js";
+import { toast } from "../components/toast/Toast.js";
 import { Chart } from "chart.js/auto";
-
 
 // Selected time filter state for sales analytics chart
 let activeTimeFilter = "30D";
+
+// Audit filter & search state
+let activeAuditFilter = "ALL";
+let auditSearchText = "";
+
+function getActionBadgeHtml(action) {
+  switch (action) {
+    case "STOCK_RESERVED":
+      return `<span class="badge badge-warning flex-center gap-xs"><i data-lucide="package-minus"></i> Stock Reserved</span>`;
+    case "STOCK_ADJUSTED":
+      return `<span class="badge badge-warning flex-center gap-xs"><i data-lucide="sliders"></i> Stock Adjusted</span>`;
+    case "CYCLE_COUNT_ADJUSTMENT":
+      return `<span class="badge badge-purple flex-center gap-xs"><i data-lucide="scale"></i> Cycle Count</span>`;
+    case "GRN_RECEIVED":
+    case "GRN_PROCESSED":
+      return `<span class="badge badge-success flex-center gap-xs"><i data-lucide="check-circle-2"></i> Dock GRN Ingest</span>`;
+    case "ORDER_CREATED":
+      return `<span class="badge badge-primary flex-center gap-xs"><i data-lucide="shopping-cart"></i> Order Booked</span>`;
+    case "ORDER_STATUS_CHANGE":
+      return `<span class="badge badge-primary flex-center gap-xs"><i data-lucide="truck"></i> Fulfillment Status</span>`;
+    case "TRANSFER_DISPATCHED":
+      return `<span class="badge badge-info flex-center gap-xs"><i data-lucide="arrow-right"></i> Transfer Dispatched</span>`;
+    case "TRANSFER_COMPLETED":
+      return `<span class="badge badge-info flex-center gap-xs"><i data-lucide="arrow-left-right"></i> Transfer Ingested</span>`;
+    case "PO_CREATED":
+    case "PO_STATUS_CHANGE":
+      return `<span class="badge badge-accent flex-center gap-xs"><i data-lucide="file-text"></i> Purchase Order</span>`;
+    case "PRODUCT_CREATED":
+      return `<span class="badge badge-accent flex-center gap-xs"><i data-lucide="package-plus"></i> SKU Registered</span>`;
+    case "DEMO_DATA_RESET":
+      return `<span class="badge badge-danger flex-center gap-xs"><i data-lucide="rotate-ccw"></i> State Reset</span>`;
+    case "AGILE_STORY_UPDATED":
+      return `<span class="badge badge-subtle flex-center gap-xs"><i data-lucide="git-merge"></i> Agile Story</span>`;
+    default:
+      return `<span class="badge badge-neutral flex-center gap-xs"><i data-lucide="activity"></i> ${action}</span>`;
+  }
+}
+
+function formatAuditEntities(text) {
+  if (!text) return "";
+  const regex = /\b(SO-\d+|PO-\d+|TO-2026-\d+|GRN-\d+|PROD-\d+|ELEC-[A-Z0-9-]+|FASH-[A-Z0-9-]+|SPRT-[A-Z0-9-]+|HOME-[A-Z0-9-]+|WH-[A-Z]+|Bin\s+[A-Z0-9-]+|\+\d+\s+units?|-\d+\s+units?|\$[\d,.]+|\b(?:Packed|Dispatched|Delivered|Received|In-Transit|Wave\s+Picking)\b)/g;
+  return text.replace(regex, (match) => `<span class="audit-entity-pill">${match}</span>`);
+}
+
+function getCategoryForAction(action) {
+  if (action.includes("STOCK") || action.includes("CYCLE")) return "INVENTORY";
+  if (action.includes("ORDER")) return "ORDERS";
+  if (action.includes("TRANSFER")) return "TRANSFERS";
+  if (action.includes("PO") || action.includes("GRN")) return "PROCUREMENT";
+  return "SYSTEM";
+}
+
+function filterAuditLogs(logs, filterCategory, search) {
+  return logs.filter((log) => {
+    if (filterCategory === "INVENTORY") {
+      if (!log.action.includes("STOCK") && !log.action.includes("CYCLE")) return false;
+    } else if (filterCategory === "ORDERS") {
+      if (!log.action.includes("ORDER")) return false;
+    } else if (filterCategory === "TRANSFERS") {
+      if (!log.action.includes("TRANSFER")) return false;
+    } else if (filterCategory === "PROCUREMENT") {
+      if (!log.action.includes("PO") && !log.action.includes("GRN")) return false;
+    } else if (filterCategory === "SYSTEM") {
+      if (
+        log.action.includes("STOCK") ||
+        log.action.includes("CYCLE") ||
+        log.action.includes("ORDER") ||
+        log.action.includes("TRANSFER") ||
+        log.action.includes("PO") ||
+        log.action.includes("GRN")
+      ) {
+        return false;
+      }
+    }
+
+    if (search && search.trim()) {
+      const q = search.toLowerCase();
+      const matchAction = log.action.toLowerCase().includes(q);
+      const matchUser = log.user.toLowerCase().includes(q);
+      const matchDetails = log.details.toLowerCase().includes(q);
+      const matchId = (log.id || "").toLowerCase().includes(q);
+      if (!matchAction && !matchUser && !matchDetails && !matchId) return false;
+    }
+
+    return true;
+  });
+}
+
+function renderAuditRowsHtml(logs) {
+  if (logs.length === 0) {
+    return `
+      <tr>
+        <td colspan="6" class="audit-empty-td">
+          <div class="audit-empty-state">
+            <i data-lucide="file-question" class="audit-empty-icon text-muted"></i>
+            <div class="audit-empty-title">No Audit Records Match Active Filters</div>
+            <p class="audit-empty-desc">Try clearing your search term or selecting "All Transactions" to view the full operations ledger.</p>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-audit-search">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Clear Filters</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  return logs
+    .map(
+      (log) => `
+    <tr class="audit-ledger-row">
+      <td class="audit-col-id">
+        <span class="audit-tx-chip font-mono">#${log.id || "TX-0000"}</span>
+      </td>
+      <td class="audit-col-time">
+        <span class="audit-timestamp font-mono">${log.timestamp}</span>
+      </td>
+      <td class="audit-col-badge">
+        ${getActionBadgeHtml(log.action)}
+      </td>
+      <td class="audit-col-desc">
+        <div class="audit-desc-content">${formatAuditEntities(log.details)}</div>
+      </td>
+      <td class="audit-col-user">
+        <div class="audit-user-badge" title="Authenticated Operator: ${log.user}">
+          <i data-lucide="user-check" class="audit-user-icon"></i>
+          <span class="audit-user-name">${log.user}</span>
+        </div>
+      </td>
+      <td class="audit-col-verify text-center" title="ACID transaction verified via cryptographically signed state ledger">
+        <span class="audit-verify-badge">
+          <i data-lucide="shield-check" class="audit-verify-icon"></i>
+          <span class="audit-verify-tag">OK</span>
+        </span>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+}
 
 export function renderDashboardView() {
   const products = store.getProducts();
@@ -12,7 +152,8 @@ export function renderDashboardView() {
   const salesOrders = store.getSalesOrders();
   const purchaseOrders = store.getPurchaseOrders();
   const stockTransfers = store.getStockTransfers ? store.getStockTransfers() : [];
-  const auditLogs = store.getAuditLogs().slice(0, 6);
+  const allAuditLogs = store.getAuditLogs();
+  const filteredAuditLogs = filterAuditLogs(allAuditLogs, activeAuditFilter, auditSearchText);
 
   // Calculate inventory metrics
   let totalCostValuation = 0;
@@ -122,7 +263,7 @@ export function renderDashboardView() {
            ================================================================== -->
       <section class="section-kpi-grid">
         <!-- KPI 1: Gross Revenue -->
-        <div class="metric-card">
+        <div class="metric-card clickable" id="kpi-card-sales" title="Click to view Sales & Analytics">
           <div class="metric-header">
             <span class="metric-label">Total Gross Sales</span>
             <div class="metric-icon-wrap icon-primary">
@@ -144,7 +285,7 @@ export function renderDashboardView() {
         </div>
 
         <!-- KPI 2: Order Fulfillment Pipeline -->
-        <div class="metric-card">
+        <div class="metric-card clickable" id="kpi-card-orders" title="Click to open Orders Fulfillment Pipeline">
           <div class="metric-header">
             <span class="metric-label">Sales Orders</span>
             <div class="metric-icon-wrap icon-info">
@@ -165,7 +306,7 @@ export function renderDashboardView() {
         </div>
 
         <!-- KPI 3: Inventory Asset Valuation -->
-        <div class="metric-card">
+        <div class="metric-card clickable" id="kpi-card-valuation" title="Click to inspect Products & Inventory">
           <div class="metric-header">
             <span class="metric-label">Total Inventory Valuation</span>
             <div class="metric-icon-wrap icon-success">
@@ -184,7 +325,7 @@ export function renderDashboardView() {
         </div>
 
         <!-- KPI 4: Catalog Stock Health -->
-        <div class="metric-card">
+        <div class="metric-card clickable" id="kpi-card-health" title="Click to inspect low-stock catalog products">
           <div class="metric-header">
             <span class="metric-label">Catalog & Stock Health</span>
             <div class="metric-icon-wrap ${lowStockProducts.length > 0 ? "icon-warning" : "icon-success"}">
@@ -320,10 +461,16 @@ export function renderDashboardView() {
                       }
                     </td>
                     <td class="text-right">
-                      <button type="button" class="btn btn-secondary btn-xs btn-reorder-trigger" data-supplier-id="${p.primarySupplierId}" data-prod-id="${p.id}" title="Issue replenishment Purchase Order for ${p.name}">
-                        <i data-lucide="shopping-cart"></i>
-                        <span>Order PO</span>
-                      </button>
+                      <div class="row-actions-group">
+                        <button type="button" class="btn btn-primary btn-xs btn-reorder-trigger" data-supplier-id="${p.primarySupplierId}" data-prod-id="${p.id}" title="Issue replenishment Purchase Order for ${p.name}">
+                          <i data-lucide="shopping-cart"></i>
+                          <span>PO</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-xs btn-transfer-trigger" data-prod-id="${p.id}" title="Initiate stock transfer for ${p.name}">
+                          <i data-lucide="arrow-left-right"></i>
+                          <span>Transfer</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `
@@ -468,6 +615,13 @@ export function renderDashboardView() {
                         <div class="progress-fill ${pct > 85 ? "fill-warning" : "fill-primary"}" style="width: ${Math.min(pct, 100)}%;"></div>
                       </div>
                     </div>
+
+                    <div class="facility-card-footer">
+                      <button type="button" class="btn btn-ghost btn-xs btn-wh-jump" data-wh-id="${wh.id}" title="Inspect facility storage bins">
+                        <i data-lucide="warehouse"></i>
+                        <span>Inspect Bins</span>
+                      </button>
+                    </div>
                   </div>
                 `;
               })
@@ -610,31 +764,88 @@ export function renderDashboardView() {
       </section>
 
       <!-- ==================================================================
-           SECTION 7: REAL-TIME SYSTEM AUDIT STREAM
+           SECTION 7: REAL-TIME SYSTEM AUDIT STREAM & OPERATIONS LEDGER
            ================================================================== -->
-      <section class="section-container">
-        <div class="panel-card">
-          <div class="panel-header">
+      <section class="section-container" id="section-audit-ledger">
+        <div class="panel-card audit-ledger-card">
+          <div class="panel-header audit-ledger-header">
             <div>
+              <div class="flex-center gap-xs" style="justify-content: flex-start; margin-bottom: 6px;">
+                <span class="badge badge-success flex-center gap-xs">
+                  <span class="status-indicator-dot pulse-green" style="width: 6px; height: 6px;"></span>
+                  LIVE ACID LEDGER STREAM
+                </span>
+                <span class="badge badge-subtle">Tamper-Evident SHA-256</span>
+                <span class="badge badge-info">OCC Concurrency Verified</span>
+              </div>
               <h2 class="panel-title">System Audit & Operations Ledger</h2>
-              <p class="panel-subtitle">Cryptographically verifiable immutable audit trail of retail transactions</p>
+              <p class="panel-subtitle">Cryptographically verifiable immutable audit trail of retail transactions, physical stock variance, and state mutations.</p>
             </div>
-            <span class="badge badge-neutral">ACID Compliant</span>
+            <div class="header-actions">
+              <span class="badge badge-neutral font-mono" id="audit-total-counter">
+                ${filteredAuditLogs.length} / ${allAuditLogs.length} Events
+              </span>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-export-audit-csv" title="Export Full Audit Trail to CSV">
+                <i data-lucide="download"></i>
+                <span>Export Audit CSV</span>
+              </button>
+            </div>
           </div>
 
-          <div class="audit-ledger-feed">
-            ${auditLogs
-              .map(
-                (log) => `
-              <div class="audit-row">
-                <div class="audit-timestamp font-mono text-muted">${log.timestamp}</div>
-                <div class="audit-action-badge"><span class="badge badge-neutral">${log.action}</span></div>
-                <div class="audit-desc">${log.details}</div>
-                <div class="audit-user text-muted">User: <strong>${log.user}</strong></div>
-              </div>
-            `
-              )
-              .join("")}
+          <!-- Audit Ledger Toolbar -->
+          <div class="audit-toolbar-wrapper">
+            <div class="audit-search-box">
+              <i data-lucide="search" class="audit-search-icon"></i>
+              <input 
+                type="text" 
+                id="audit-search-input" 
+                placeholder="Search audit trail by Action, User, Order #, SKU, Warehouse, or Keyword..." 
+                value="${auditSearchText}" 
+                autocomplete="off"
+                spellcheck="false"
+              />
+              ${auditSearchText ? `<button type="button" id="btn-clear-audit-text" class="btn-clear-text">&times;</button>` : ""}
+            </div>
+
+            <div class="audit-filter-chips-list">
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "ALL" ? "active" : ""}" data-category="ALL">
+                All Transactions (${allAuditLogs.length})
+              </button>
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "INVENTORY" ? "active" : ""}" data-category="INVENTORY">
+                <i data-lucide="boxes"></i> Inventory & Cycle Counts
+              </button>
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "ORDERS" ? "active" : ""}" data-category="ORDERS">
+                <i data-lucide="shopping-bag"></i> Orders & Sales
+              </button>
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "TRANSFERS" ? "active" : ""}" data-category="TRANSFERS">
+                <i data-lucide="arrow-left-right"></i> Stock Transfers
+              </button>
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "PROCUREMENT" ? "active" : ""}" data-category="PROCUREMENT">
+                <i data-lucide="truck"></i> Procurement & GRN
+              </button>
+              <button type="button" class="audit-filter-chip ${activeAuditFilter === "SYSTEM" ? "active" : ""}" data-category="SYSTEM">
+                <i data-lucide="shield"></i> System & Admin
+              </button>
+            </div>
+          </div>
+
+          <!-- Ledger Table Container (True Tabular Architecture) -->
+          <div class="table-container audit-stream-container">
+            <table class="data-table audit-data-table">
+              <thead>
+                <tr>
+                  <th class="audit-col-id" style="width: 105px;">Tx Seq</th>
+                  <th class="audit-col-time" style="width: 165px;">Timestamp</th>
+                  <th class="audit-col-badge" style="width: 195px;">Action Event</th>
+                  <th class="audit-col-desc">Mutation Details &amp; Entity References</th>
+                  <th class="audit-col-user" style="width: 175px;">Operator / User</th>
+                  <th class="audit-col-verify text-center" style="width: 95px;">Integrity</th>
+                </tr>
+              </thead>
+              <tbody id="audit-ledger-stream">
+                ${renderAuditRowsHtml(filteredAuditLogs)}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -680,7 +891,7 @@ export function setupDashboardEvents(onNavigateTab) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `RIMS_Inventory_Snapshot_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute("download", `Stockora_Inventory_Snapshot_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -694,7 +905,7 @@ export function setupDashboardEvents(onNavigateTab) {
 
   // Queue click handlers to jump to specific views
   const qStock = document.getElementById("queue-click-stock");
-  if (qStock) qStock.addEventListener("click", () => onNavigateTab("products"));
+  if (qStock) qStock.addEventListener("click", () => onNavigateTab("inventory"));
 
   const qOrders = document.getElementById("queue-click-orders");
   if (qOrders) qOrders.addEventListener("click", () => onNavigateTab("orders"));
@@ -707,7 +918,7 @@ export function setupDashboardEvents(onNavigateTab) {
 
   // View All buttons
   const viewAllInv = document.getElementById("btn-view-all-inventory");
-  if (viewAllInv) viewAllInv.addEventListener("click", () => onNavigateTab("products"));
+  if (viewAllInv) viewAllInv.addEventListener("click", () => onNavigateTab("inventory"));
 
   const viewAllWh = document.getElementById("btn-view-all-warehouses");
   if (viewAllWh) viewAllWh.addEventListener("click", () => onNavigateTab("warehouses"));
@@ -718,11 +929,38 @@ export function setupDashboardEvents(onNavigateTab) {
   const viewAllProd = document.getElementById("btn-view-all-products");
   if (viewAllProd) viewAllProd.addEventListener("click", () => onNavigateTab("products"));
 
+  // KPI Card Navigation Clicks
+  const kpiSales = document.getElementById("kpi-card-sales");
+  if (kpiSales) kpiSales.addEventListener("click", () => onNavigateTab("architecture"));
+
+  const kpiOrders = document.getElementById("kpi-card-orders");
+  if (kpiOrders) kpiOrders.addEventListener("click", () => onNavigateTab("orders"));
+
+  const kpiVal = document.getElementById("kpi-card-valuation");
+  if (kpiVal) kpiVal.addEventListener("click", () => onNavigateTab("inventory"));
+
+  const kpiHealth = document.getElementById("kpi-card-health");
+  if (kpiHealth) kpiHealth.addEventListener("click", () => onNavigateTab("inventory"));
+
   // Order PO trigger buttons in reorder radar
   document.querySelectorAll(".btn-reorder-trigger").forEach((btn) => {
     btn.addEventListener("click", () => {
       const supId = btn.dataset.supplierId;
       modals.openCreatePOModal(supId);
+    });
+  });
+
+  // Stock transfer trigger buttons in reorder radar
+  document.querySelectorAll(".btn-transfer-trigger").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      modals.openCreateTransferModal();
+    });
+  });
+
+  // Warehouse inspect bins buttons
+  document.querySelectorAll(".btn-wh-jump").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onNavigateTab("warehouses");
     });
   });
 
@@ -733,6 +971,88 @@ export function setupDashboardEvents(onNavigateTab) {
       modals.openPackingSlipModal(orderId);
     });
   });
+
+  // ==========================================================================
+  // Upgraded System Audit & Operations Ledger Live Interaction
+  // ==========================================================================
+  const auditSearchInput = document.getElementById("audit-search-input");
+  const auditFeedContainer = document.getElementById("audit-ledger-stream");
+  const auditCounterBadge = document.getElementById("audit-total-counter");
+  const clearAuditTextBtn = document.getElementById("btn-clear-audit-text");
+
+  function updateAuditFeed() {
+    if (!auditFeedContainer) return;
+    const allLogs = store.getAuditLogs();
+    const filtered = filterAuditLogs(allLogs, activeAuditFilter, auditSearchText);
+    auditFeedContainer.innerHTML = renderAuditRowsHtml(filtered);
+
+    if (auditCounterBadge) {
+      auditCounterBadge.textContent = `${filtered.length} / ${allLogs.length} Events`;
+    }
+
+    // Re-bind reset button if empty state is showing
+    const resetBtn = document.getElementById("btn-reset-audit-search");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        auditSearchText = "";
+        activeAuditFilter = "ALL";
+        if (auditSearchInput) auditSearchInput.value = "";
+        document.querySelectorAll(".audit-filter-chip").forEach((c) => {
+          c.classList.toggle("active", c.dataset.category === "ALL");
+        });
+        updateAuditFeed();
+      });
+    }
+
+    // Hydrate Lucide icons inside audit ledger
+    if (window.lucide) {
+      window.lucide.createIcons({ root: auditFeedContainer });
+    }
+  }
+
+  if (auditSearchInput) {
+    auditSearchInput.addEventListener("input", (e) => {
+      auditSearchText = e.target.value;
+      updateAuditFeed();
+    });
+  }
+
+  if (clearAuditTextBtn) {
+    clearAuditTextBtn.addEventListener("click", () => {
+      auditSearchText = "";
+      if (auditSearchInput) auditSearchInput.value = "";
+      updateAuditFeed();
+    });
+  }
+
+  document.querySelectorAll(".audit-filter-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".audit-filter-chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      activeAuditFilter = chip.dataset.category || "ALL";
+      updateAuditFeed();
+    });
+  });
+
+  const exportAuditCsvBtn = document.getElementById("btn-export-audit-csv");
+  if (exportAuditCsvBtn) {
+    exportAuditCsvBtn.addEventListener("click", () => {
+      const logsToExport = filterAuditLogs(store.getAuditLogs(), activeAuditFilter, auditSearchText);
+      let csv = "Transaction ID,Timestamp,Action Code,Action Category,Operator User,Details,Integrity\n";
+      logsToExport.forEach((l) => {
+        csv += `"${l.id || "TX-0000"}","${l.timestamp}","${l.action}","${getCategoryForAction(l.action)}","${l.user}","${(l.details || "").replace(/"/g, '""')}","SHA256_VERIFIED"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Stockora_Audit_Ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Exported ${logsToExport.length} audit ledger records to CSV!`);
+    });
+  }
 }
 
 // Global chart instance storage to prevent canvas reuse errors

@@ -1,6 +1,7 @@
 import { store } from "../../state/store.js";
 import { toast } from "../toast/Toast.js";
 import confetti from "canvas-confetti";
+import { renderRimsLogoMark } from "../brand/RimsLogo.js";
 
 
 export class ModalManager {
@@ -33,8 +34,9 @@ export class ModalManager {
     this.dialog = d;
   }
 
-  open(contentHtml, afterRender = null) {
+  open(contentHtml, afterRender = null, modalClass = "") {
     this.ensureDialog();
+    this.dialog.className = `app-dialog ${modalClass}`.trim();
     this.dialog.innerHTML = `
       <div class="dialog-card">
         ${contentHtml}
@@ -84,13 +86,14 @@ export class ModalManager {
       </div>
 
       <form id="form-product" class="modal-form">
-        <div class="form-grid">
-          <div class="form-group col-span-2">
+        <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px;">
+          <!-- Row 1: Identification (12 cols) -->
+          <div class="form-group" style="grid-column: span 6;">
             <label>Product Name *</label>
             <input type="text" name="name" required value="${product?.name || ""}" placeholder="e.g. UltraFit Active Sport Earbuds" />
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Category *</label>
             <select name="category" required>
               ${["Electronics", "Apparel", "Home & Furniture", "Grocery & Gourmet", "Sports & Fitness", "Health & Personal Care"]
@@ -99,55 +102,60 @@ export class ModalManager {
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Brand Name *</label>
             <input type="text" name="brand" required value="${product?.brand || ""}" placeholder="e.g. AuraSound" />
           </div>
 
-          <div class="form-group">
+          <!-- Row 2: SKU, Barcode, Pricing (12 cols) -->
+          <div class="form-group" style="grid-column: span 3;">
             <label>SKU (Stock Keeping Unit)</label>
             <div class="input-with-action">
-              <input type="text" name="sku" id="input-sku" required value="${product?.sku || ""}" placeholder="Auto-generated if empty" />
-              <button type="button" id="btn-gen-sku" class="btn btn-secondary btn-sm" title="Auto-generate standardized SKU">Auto</button>
+              <input type="text" name="sku" id="input-sku" required value="${product?.sku || ""}" placeholder="SKU-AUTO" />
+              <button type="button" id="btn-gen-sku" class="btn btn-secondary btn-sm" title="Auto-generate standardized SKU" style="padding: 0 8px;">Auto</button>
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Barcode (EAN-13 / UPC)</label>
             <input type="text" name="barcode" id="input-barcode" required value="${product?.barcode || ""}" placeholder="e.g. 8901234567890" />
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Cost Price ($) *</label>
             <input type="number" step="0.01" name="costPrice" id="input-cost" required value="${product?.costPrice || ""}" placeholder="0.00" />
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Selling Price ($) *</label>
             <input type="number" step="0.01" name="sellingPrice" id="input-price" required value="${product?.sellingPrice || ""}" placeholder="0.00" />
           </div>
 
-          <div class="form-group col-span-2 margin-preview-box">
-            <div class="flex-between">
-              <span class="text-sm">Gross Profit Margin:</span>
-              <span id="margin-calc" class="font-bold text-accent">0.0%</span>
-            </div>
-            <div class="progress-bar-container">
-              <div id="margin-bar" class="progress-bar" style="width: 0%"></div>
+          <!-- Row 3: Margin, Reorder, Max, Unit (12 cols) -->
+          <div class="form-group" style="grid-column: span 3;">
+            <label>Profit Margin (%)</label>
+            <div class="margin-preview-box" style="height: 36px; padding: 4px 10px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; margin: 0;">
+              <div class="flex-between">
+                <span style="font-size: 0.72rem; font-weight: 600;">Margin:</span>
+                <span id="margin-calc" class="font-bold text-accent" style="font-size: 0.78rem;">0.0%</span>
+              </div>
+              <div class="progress-bar-container" style="height: 4px; margin-top: 2px;">
+                <div id="margin-bar" class="progress-bar" style="width: 0%"></div>
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Reorder Point (Threshold) *</label>
+          <div class="form-group" style="grid-column: span 3;">
+            <label>Reorder Point *</label>
             <input type="number" name="reorderPoint" required value="${product?.reorderPoint || 25}" />
           </div>
 
-          <div class="form-group">
-            <label>Max Warehouse Capacity *</label>
+          <div class="form-group" style="grid-column: span 3;">
+            <label>Max Capacity *</label>
             <input type="number" name="maxStock" required value="${product?.maxStock || 200}" />
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 3;">
             <label>Unit of Measure</label>
             <select name="unit">
               ${["Units", "Packs", "Sets", "Boxes", "Cartons", "Pallets"]
@@ -156,7 +164,8 @@ export class ModalManager {
             </select>
           </div>
 
-          <div class="form-group">
+          <!-- Row 4: Primary Supplier & Stock Setup (12 cols) -->
+          <div class="form-group" style="grid-column: span ${isEdit ? "12" : "4"};">
             <label>Primary Supplier</label>
             <select name="primarySupplierId">
               ${suppliers.map((s) => `<option value="${s.id}" ${product?.primarySupplierId === s.id ? "selected" : ""}>${s.name} (${s.code})</option>`).join("")}
@@ -166,11 +175,11 @@ export class ModalManager {
           ${
             !isEdit
               ? `
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 4;">
             <label>Initial Stock (Units)</label>
             <input type="number" name="initialStock" value="50" min="0" />
           </div>
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 4;">
             <label>Initial Warehouse</label>
             <select name="initialWarehouse">
               ${warehouses.map((w) => `<option value="${w.id}">${w.name} (${w.city})</option>`).join("")}
@@ -180,9 +189,10 @@ export class ModalManager {
               : ""
           }
 
-          <div class="form-group col-span-2">
+          <!-- Row 5: Product Description (12 cols) -->
+          <div class="form-group" style="grid-column: span 12;">
             <label>Product Description & Specs</label>
-            <textarea name="description" rows="2" placeholder="Brief technical and retail specs">${product?.description || ""}</textarea>
+            <input type="text" name="description" placeholder="Brief technical and retail specs" value="${product?.description || ""}" />
           </div>
         </div>
 
@@ -261,7 +271,7 @@ export class ModalManager {
         }
         this.close();
       });
-    });
+    }, "modal-wide");
   }
 
   // --- Cycle Count Stock Adjustment Modal ---
@@ -407,25 +417,31 @@ export class ModalManager {
           </div>
 
           <div class="form-group col-span-2">
-            <div class="flex-between">
+            <div class="flex-between" style="margin-bottom: 4px;">
               <label>PO Line Items *</label>
-              <button type="button" id="btn-add-po-line" class="btn btn-secondary btn-sm">+ Add Line Item</button>
+              <button type="button" id="btn-add-po-line" class="btn btn-secondary btn-sm" style="padding: 2px 8px; font-size: 0.75rem;">+ Add Line Item</button>
             </div>
-            <div id="po-lines-container" class="order-items-builder">
+            <div style="display: grid; grid-template-columns: 1fr 90px 110px 32px; gap: 8px; padding: 0 10px 2px 10px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted);">
+              <span>Product / SKU</span>
+              <span>Quantity</span>
+              <span>Unit Cost ($)</span>
+              <span></span>
+            </div>
+            <div id="po-lines-container" class="order-items-builder" style="max-height: 110px; overflow-y: auto; overflow-x: hidden; padding: 2px;">
               <!-- Item rows injected here -->
             </div>
           </div>
 
-          <div class="form-group col-span-2 po-summary-card">
+          <div class="form-group col-span-2 po-summary-card" style="padding: 8px 14px; margin: 0;">
             <div class="flex-between">
-              <span>Total Estimated PO Capital:</span>
-              <span id="po-total-calc" class="font-bold text-accent text-lg">$0.00</span>
+              <span style="font-size: 0.85rem; font-weight: 600;">Total Estimated PO Capital:</span>
+              <span id="po-total-calc" class="font-bold text-accent text-base">$0.00</span>
             </div>
           </div>
 
           <div class="form-group col-span-2">
             <label>Special Shipping Instructions / Notes</label>
-            <textarea name="notes" rows="2" placeholder="e.g. Deliver between 08:00 - 15:00 at Receiving Dock 3"></textarea>
+            <input type="text" name="notes" placeholder="e.g. Deliver between 08:00 - 15:00 at Receiving Dock 3" value="Deliver between 08:00 - 15:00 at Receiving Dock 3" style="width: 100%;" />
           </div>
         </div>
 
@@ -445,21 +461,22 @@ export class ModalManager {
       const createLineRow = (selectedProdId = null, qty = 50) => {
         const row = document.createElement("div");
         row.className = "order-item-row";
+        row.style.cssText = "display: grid; grid-template-columns: 1fr 90px 110px 32px; gap: 8px; align-items: center; padding: 5px 8px;";
         row.innerHTML = `
-          <div class="form-group flex-1">
-            <select class="po-item-prod" required>
+          <div style="min-width: 0;">
+            <select class="po-item-prod" required style="width: 100%; height: 34px;">
               ${products
                 .map((p) => `<option value="${p.id}" data-cost="${p.costPrice}" ${selectedProdId === p.id ? "selected" : ""}>${p.name} (${p.sku}) - $${p.costPrice.toFixed(2)}</option>`)
                 .join("")}
             </select>
           </div>
-          <div class="form-group" style="width: 110px;">
-            <input type="number" class="po-item-qty" min="1" value="${qty}" placeholder="Qty" required />
+          <div style="min-width: 0;">
+            <input type="number" class="po-item-qty" min="1" value="${qty}" placeholder="Qty" required style="width: 100%; height: 34px;" />
           </div>
-          <div class="form-group" style="width: 120px;">
-            <input type="number" step="0.01" class="po-item-cost" placeholder="Unit Cost" required />
+          <div style="min-width: 0;">
+            <input type="number" step="0.01" class="po-item-cost" placeholder="Unit Cost" required style="width: 100%; height: 34px;" />
           </div>
-          <button type="button" class="btn-icon btn-remove-line" title="Remove line">&times;</button>
+          <button type="button" class="btn-icon btn-remove-line" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" title="Remove line">&times;</button>
         `;
 
         const prodSelect = row.querySelector(".po-item-prod");
@@ -529,7 +546,7 @@ export class ModalManager {
         toast.success(`Purchase Order ${po.poNumber} created and approved`);
         this.close();
       });
-    });
+    }, "modal-wide");
   }
 
   // --- Inbound Goods Receipt Note (GRN) Receiving Modal ---
@@ -687,22 +704,22 @@ export class ModalManager {
             <input type="text" name="eta" value="In 3 Business Days" />
           </div>
 
-          <div class="form-group col-span-2">
-            <label>Select Product to Transfer *</label>
-            <select id="trf-product" required>
-              ${products.map((p) => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join("")}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Transfer Quantity *</label>
-            <input type="number" id="trf-qty" min="1" value="20" required />
-          </div>
-
-          <div class="form-group">
-            <label>Stock at Origin Available</label>
-            <div id="origin-stock-indicator" class="stat-pill">
-              <span class="value text-accent font-bold">Checking...</span>
+          <div class="form-group col-span-2" style="display: grid; grid-template-columns: 2.2fr 1fr 1.3fr; gap: 10px; align-items: flex-end;">
+            <div style="min-width: 0;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Select Product to Transfer *</label>
+              <select id="trf-product" required style="width: 100%;">
+                ${products.map((p) => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join("")}
+              </select>
+            </div>
+            <div style="min-width: 0;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Transfer Qty *</label>
+              <input type="number" id="trf-qty" min="1" value="20" required style="width: 100%;" />
+            </div>
+            <div style="min-width: 0;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Origin Stock</label>
+              <div id="origin-stock-indicator" class="stat-pill" style="height: 36px; display: flex; align-items: center; justify-content: center; padding: 0 8px; box-sizing: border-box;">
+                <span class="value text-accent font-bold" style="font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Checking...</span>
+              </div>
             </div>
           </div>
 
@@ -734,7 +751,7 @@ export class ModalManager {
         const onHand = stockRec ? stockRec.onHand : 0;
         const reserved = stockRec ? stockRec.reserved : 0;
         const available = Math.max(0, onHand - reserved);
-        originStockIndicator.textContent = `${available} Units Available (OnHand: ${onHand})`;
+        originStockIndicator.textContent = `${available} Avail (${onHand} Total)`;
         qtyInput.max = available > 0 ? available : 1;
       };
 
@@ -832,14 +849,14 @@ export class ModalManager {
             </select>
           </div>
 
-          <div class="form-group col-span-2">
+          <div class="form-group" style="grid-column: span 1;">
             <label>Order Item *</label>
             <select id="order-prod" required>
               ${products.map((p) => `<option value="${p.id}">${p.name} ($${p.sellingPrice.toFixed(2)})</option>`).join("")}
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: span 1;">
             <label>Order Quantity *</label>
             <input type="number" id="order-qty" min="1" value="2" required />
           </div>
@@ -897,7 +914,7 @@ export class ModalManager {
       <div class="printable-slip">
         <div class="slip-header">
           <div>
-            <div class="slip-brand">RIMS LOGISTICS CORP</div>
+            <div class="slip-brand">STOCKORA LOGISTICS CORP</div>
             <div class="text-xs text-muted">Advanced Retail Fulfillment Network</div>
             <div class="text-xs text-muted">Fulfillment Hub: ${warehouse?.name}</div>
             <div class="text-xs text-muted">${warehouse?.address}</div>
@@ -915,7 +932,7 @@ export class ModalManager {
         <div class="slip-addresses">
           <div>
             <div class="text-xs font-bold text-muted">SHIP TO:</div>
-            <div class="font-bold">${order.customer.name}</div>
+            <button type="button" id="btn-slip-view-customer" class="font-bold text-main" title="Click to view Customer Account Profile" style="background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; font-size: 1rem; text-align: left; color: var(--color-primary, #2563eb);">${order.customer.name}</button>
             <div class="text-sm">${order.customer.shippingAddress}</div>
             <div class="text-xs text-muted">${order.customer.email}</div>
           </div>
@@ -958,7 +975,7 @@ export class ModalManager {
 
         <div class="slip-footer">
           <div class="text-xs text-muted">
-            Thank you for your order! For returns and RMA queries, visit <strong>returns.rims-retail.com</strong> with your order # ${order.orderNumber}.
+            Thank you for your order! For returns and RMA queries, visit <strong>returns.stockora.in</strong> with your order # ${order.orderNumber}.
           </div>
           <div class="slip-total">
             Total Declared Value: <strong>$${order.totalAmount.toFixed(2)}</strong>
@@ -972,7 +989,161 @@ export class ModalManager {
       printBtn.addEventListener("click", () => {
         window.print();
       });
+
+      const custBtn = dialog.querySelector("#btn-slip-view-customer");
+      if (custBtn) {
+        custBtn.addEventListener("click", () => {
+          this.openCustomerModal(order.customer);
+        });
+      }
     });
+  }
+
+  // --- Customer Profile & Account Details Modal (Accessed from Orders) ---
+  openCustomerModal(customerIdentifier) {
+    const customers = store.getCustomers ? store.getCustomers() : [];
+    let cust = null;
+    if (typeof customerIdentifier === "string") {
+      cust = customers.find(
+        (c) =>
+          c.email?.toLowerCase() === customerIdentifier.toLowerCase() ||
+          c.name?.toLowerCase() === customerIdentifier.toLowerCase() ||
+          c.id === customerIdentifier
+      );
+    } else if (customerIdentifier && typeof customerIdentifier === "object") {
+      cust =
+        customers.find(
+          (c) => c.email?.toLowerCase() === customerIdentifier.email?.toLowerCase()
+        ) || customerIdentifier;
+    }
+
+    if (!cust) {
+      cust = {
+        name: typeof customerIdentifier === "string" ? customerIdentifier : "Retail Customer",
+        email: "customer@retailhub.in",
+        phone: "+91 98200 12345",
+        shippingAddress: "Regional Fulfillment Address",
+        channel: "Direct Storefront",
+        ordersCount: 1,
+        totalSpent: 120.0,
+        status: "Active"
+      };
+    }
+
+    const allOrders = store.getSalesOrders();
+    const customerOrders = allOrders.filter(
+      (o) =>
+        o.customer?.email?.toLowerCase() === cust.email?.toLowerCase() ||
+        o.customer?.name?.toLowerCase() === cust.name?.toLowerCase()
+    );
+
+    const lifetimeSpend = cust.totalSpent || customerOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const orderCount = cust.ordersCount || customerOrders.length;
+    const avgOrder = orderCount > 0 ? (lifetimeSpend / orderCount).toFixed(2) : "0.00";
+
+    const content = `
+      <div class="modal-header">
+        <div class="flex-align-center gap-3">
+          <div class="user-avatar-initials" style="width: 44px; height: 44px; font-size: 1.1rem; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700;">
+            ${cust.name ? cust.name.split(" ").map((n) => n[0]).join("").slice(0, 2) : "CU"}
+          </div>
+          <div>
+            <div class="flex-align-center gap-2">
+              <h3 style="margin: 0;">${cust.name}</h3>
+              <span class="badge badge-success text-xxs font-bold">Verified Account</span>
+            </div>
+            <p class="text-muted text-xs" style="margin: 2px 0 0 0;">Customer ID: <span class="font-mono">${cust.id || "CUST-1001"}</span> &bull; Channel: ${cust.channel || "Storefront"}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-icon btn-modal-close">&times;</button>
+      </div>
+
+      <div class="customer-modal-body" style="padding: 0;">
+        <!-- Metrics Row -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: var(--bg-surface-secondary, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px; text-align: center;">
+            <div class="text-muted text-xs font-semibold">Total Orders</div>
+            <div class="font-mono font-bold text-lg" style="margin-top: 4px; color: var(--text-main, #0f172a);">${orderCount}</div>
+          </div>
+          <div style="background: var(--bg-surface-secondary, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px; text-align: center;">
+            <div class="text-muted text-xs font-semibold">Lifetime Value</div>
+            <div class="font-mono font-bold text-lg text-accent" style="margin-top: 4px;">$${Number(lifetimeSpend).toFixed(2)}</div>
+          </div>
+          <div style="background: var(--bg-surface-secondary, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px; text-align: center;">
+            <div class="text-muted text-xs font-semibold">Average Order</div>
+            <div class="font-mono font-bold text-lg" style="margin-top: 4px; color: var(--text-main, #0f172a);">$${avgOrder}</div>
+          </div>
+        </div>
+
+        <!-- Contact & Address Details -->
+        <div style="background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #64748b);">Contact & Shipping Information</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
+            <div>
+              <span class="text-muted">Email:</span>
+              <div class="font-mono font-semibold" style="margin-top: 2px;">${cust.email}</div>
+            </div>
+            <div>
+              <span class="text-muted">Phone:</span>
+              <div class="font-mono font-semibold" style="margin-top: 2px;">${cust.phone || "+91 98200 12345"}</div>
+            </div>
+            <div style="grid-column: span 2;">
+              <span class="text-muted">Primary Delivery Address:</span>
+              <div class="font-semibold" style="margin-top: 2px;">${cust.shippingAddress}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Associated Orders History -->
+        <div>
+          <div class="flex-between" style="margin-bottom: 8px;">
+            <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #64748b);">Customer Order History (${customerOrders.length})</h4>
+          </div>
+          ${
+            customerOrders.length === 0
+              ? `
+            <div class="text-muted text-xs" style="padding: 16px; text-align: center; border: 1px dashed var(--border-color, #e2e8f0); border-radius: 6px;">No recorded sales orders for this profile yet.</div>
+          `
+              : `
+            <div class="table-responsive" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px;">
+              <table class="data-table" style="font-size: 0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Items</th>
+                    <th class="text-right">Total</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${customerOrders
+                    .map(
+                      (o) => `
+                    <tr>
+                      <td class="font-mono font-bold text-main">${o.orderNumber}</td>
+                      <td class="text-muted">${o.orderDate ? o.orderDate.split(" ")[0] : "Recent"}</td>
+                      <td>${(o.items || []).reduce((sum, it) => sum + (it.quantity || 1), 0)} units</td>
+                      <td class="text-right font-mono font-bold text-accent">$${o.totalAmount.toFixed(2)}</td>
+                      <td><span class="badge ${o.status === "Delivered" ? "badge-success" : o.status === "Dispatched" ? "badge-accent" : "badge-warning"}">${o.status}</span></td>
+                    </tr>
+                  `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          `
+          }
+        </div>
+
+        <div class="modal-footer" style="margin-top: 20px; padding: 0;">
+          <button type="button" class="btn btn-secondary btn-modal-close">Close Details</button>
+        </div>
+      </div>
+    `;
+
+    this.open(content);
   }
 
   // --- Interactive Barcode Scanner Simulator Modal ---
@@ -987,25 +1158,25 @@ export class ModalManager {
         <button type="button" class="btn-icon btn-modal-close">&times;</button>
       </div>
 
-      <div class="scanner-container">
-        <div class="scanner-screen">
+      <div class="scanner-container" style="gap: 12px;">
+        <div class="scanner-screen" style="height: 75px;">
           <div class="laser-beam"></div>
           <div class="scanner-status" id="scan-feedback">READY - AIM SCANNER AT BARCODE</div>
         </div>
 
         <div class="scanner-input-bar">
           <input type="text" id="manual-barcode-input" placeholder="Type or click barcode below (e.g. 8901234567890)" />
-          <button type="button" id="btn-trigger-scan" class="btn btn-primary">Scan</button>
+          <button type="button" id="btn-trigger-scan" class="btn btn-primary" style="flex-shrink: 0; padding: 0 18px;">Scan</button>
         </div>
 
         <div class="quick-barcode-list">
-          <div class="text-xs text-muted" style="margin-bottom: 6px;">QUICK SCAN DEMO BARCODES:</div>
-          <div class="barcode-pills">
+          <div class="text-xs text-muted" style="margin-bottom: 4px; font-weight: 600;">QUICK SCAN DEMO BARCODES:</div>
+          <div class="barcode-pills" style="display: flex; flex-wrap: wrap; gap: 6px;">
             ${products
               .slice(0, 6)
               .map(
                 (p) =>
-                  `<button type="button" class="barcode-pill" data-barcode="${p.barcode}" data-sku="${p.sku}">
+                  `<button type="button" class="barcode-pill" data-barcode="${p.barcode}" data-sku="${p.sku}" style="padding: 4px 8px; font-size: 0.72rem;">
                     <span class="font-mono">${p.barcode}</span>
                     <span class="text-xs text-muted">(${p.sku})</span>
                   </button>`
@@ -1014,7 +1185,7 @@ export class ModalManager {
           </div>
         </div>
 
-        <div id="scanner-result" class="scanner-result-card" style="display: none;">
+        <div id="scanner-result" class="scanner-result-card" style="display: none; padding: 12px 14px; margin-top: 4px;">
           <!-- Result populates on scan -->
         </div>
       </div>
@@ -1113,103 +1284,101 @@ export class ModalManager {
     });
   }
 
-  // --- Authentication & Login Modal ---
-  openLoginModal() {
+  // --- Administrator Authentication & Login Modal ---
+  openLoginModal(onSuccess = null) {
     const content = `
-      <div class="modal-header">
-        <div class="flex-align-center gap-3">
-          <div class="login-brand-icon">
-            <i data-lucide="shield-check"></i>
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="login-brand-icon" style="width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: rgba(26, 100, 240, 0.08); border: 1px solid rgba(26, 100, 240, 0.15); padding: 2px;">
+            <img src="/stockora-icon.png" alt="Stockora" style="width: 100%; height: 100%; object-fit: contain;" />
           </div>
-          <div>
-            <h3>RIMS Enterprise Sign In</h3>
-            <p class="text-muted text-sm">Authenticate your session to access authorized inventory operations</p>
-          </div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0; line-height: 1;">Stockora Administrator Login</h3>
         </div>
-        <button type="button" class="btn-icon btn-modal-close">&times;</button>
+        <button type="button" class="btn-icon btn-modal-close" aria-label="Close dialog">&times;</button>
       </div>
 
-      <div class="login-modal-body">
-        <!-- Quick Role Selector Cards -->
-        <div class="quick-login-section">
-          <label class="section-micro-label">Quick Sign In as Pre-Configured Role:</label>
-          <div class="quick-roles-grid">
-            <button type="button" class="quick-role-btn active-admin" data-email="admin@retailhub.in" data-role="Admin">
-              <span class="role-icon">👑</span>
-              <div class="role-text">
-                <span class="role-title">System Admin</span>
-                <span class="role-user">Aarav Sharma</span>
-              </div>
-            </button>
-            <button type="button" class="quick-role-btn" data-email="inventory@retailhub.in" data-role="Inventory Manager">
-              <span class="role-icon">📦</span>
-              <div class="role-text">
-                <span class="role-title">Inventory Mgr</span>
-                <span class="role-user">Priya Patel</span>
-              </div>
-            </button>
-            <button type="button" class="quick-role-btn" data-email="sales@retailhub.in" data-role="Sales Manager">
-              <span class="role-icon">💼</span>
-              <div class="role-text">
-                <span class="role-title">Sales Lead</span>
-                <span class="role-user">Rohan Verma</span>
-              </div>
-            </button>
-            <button type="button" class="quick-role-btn" data-email="supplier@retailhub.in" data-role="Supplier Manager">
-              <span class="role-icon">🚚</span>
-              <div class="role-text">
-                <span class="role-title">Supplier Mgr</span>
-                <span class="role-user">Ananya Iyer</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div class="login-divider">
-          <span>OR ENTER CREDENTIALS</span>
+      <div class="login-modal-body" style="padding: 0;">
+        
+        <!-- Administrator Scope Badge -->
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(26, 100, 240, 0.06); border: 1px solid rgba(26, 100, 240, 0.15); border-radius: 8px; margin-bottom: 18px;">
+          <i data-lucide="shield-check" style="width: 16px; height: 16px; color: #1a64f0; flex-shrink: 0;"></i>
+          <span style="font-size: 0.78rem; color: var(--text-main); line-height: 1.3;">
+            Authorized for <strong>Warehouse & Inventory Management</strong> personnel only.
+          </span>
         </div>
 
         <form id="form-login" class="modal-form">
-          <div id="login-error-alert" class="alert-box alert-danger" style="display: none;">
-            <i data-lucide="alert-circle"></i>
-            <span id="login-error-text">Invalid email or password</span>
+          <div id="login-error-alert" class="alert-box alert-danger" style="display: none; margin-bottom: 14px; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; align-items: center; gap: 8px;">
+            <i data-lucide="alert-circle" style="width: 15px; height: 15px; flex-shrink: 0;"></i>
+            <span id="login-error-text">Invalid administrator credentials.</span>
           </div>
 
-          <div class="form-group">
-            <label for="login-email">Email Address</label>
-            <div class="input-with-icon">
-              <i data-lucide="mail"></i>
-              <input type="email" id="login-email" name="email" required placeholder="admin@retailhub.in" value="admin@retailhub.in" autocomplete="username" />
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label for="login-email" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px;">Admin Email / Username</label>
+            <div class="input-with-icon" style="position: relative;">
+              <i data-lucide="mail" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #94a3b8;"></i>
+              <input 
+                type="email" 
+                id="login-email" 
+                name="email" 
+                required 
+                placeholder="admin@retailhub.in" 
+                value="" 
+                autocomplete="off" 
+                style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.86rem; background: var(--bg-surface); color: var(--text-main); transition: border-color 0.2s;"
+              />
+            </div>
+            <div id="login-email-error" style="display: none; color: #dc2626; font-size: 0.75rem; margin-top: 5px; align-items: center; gap: 4px;">
+              <i data-lucide="alert-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></i>
+              <span id="login-email-error-text">Please enter a valid administrator email.</span>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="login-password">Password</label>
-            <div class="input-with-icon">
-              <i data-lucide="lock"></i>
-              <input type="password" id="login-password" name="password" required placeholder="••••••••" value="Password123!" autocomplete="current-password" />
-              <button type="button" id="btn-toggle-pwd" class="btn-icon-inside" title="Show/Hide Password">
-                <i data-lucide="eye" id="pwd-icon"></i>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="login-password" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px;">Password</label>
+            <div class="input-with-icon" style="position: relative;">
+              <i data-lucide="lock" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #94a3b8;"></i>
+              <input 
+                type="password" 
+                id="login-password" 
+                name="password" 
+                required 
+                placeholder="" 
+                value="" 
+                autocomplete="off" 
+                style="width: 100%; padding: 9px 36px 9px 36px; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.86rem; background: var(--bg-surface); color: var(--text-main);"
+              />
+              <button 
+                type="button" 
+                id="btn-toggle-pwd" 
+                class="btn-icon-inside" 
+                title="Show/Hide Password"
+                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px;"
+              >
+                <i data-lucide="eye" id="pwd-icon" style="width: 15px; height: 15px;"></i>
               </button>
             </div>
           </div>
 
-          <div class="login-features-info">
-            <div class="feature-item">
-              <i data-lucide="check-circle-2"></i>
-              <span>JWT Bearer Token Authentication</span>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="check-circle-2"></i>
-              <span>PostgreSQL 18 RBAC Authorization</span>
-            </div>
+          <!-- Remember Me Row -->
+          <div class="login-remember-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+            <label for="modal-login-remember" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.82rem; color: var(--text-main); user-select: none;">
+              <input 
+                type="checkbox" 
+                id="modal-login-remember" 
+                name="rememberMe" 
+                style="width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer; border-radius: 4px;"
+              />
+              <span style="font-weight: 500;">Remember me</span>
+            </label>
+            <span class="text-xs text-muted">Keep session signed in</span>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" class="btn btn-ghost btn-modal-close">Cancel</button>
-            <button type="submit" id="btn-submit-login" class="btn btn-primary">
+          <div class="modal-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+            <button type="button" class="btn btn-ghost btn-sm btn-modal-close">Cancel</button>
+            <button type="submit" id="btn-submit-login" class="btn btn-primary btn-sm">
               <i data-lucide="log-in"></i>
-              <span id="submit-login-text">Sign In as Admin</span>
+              <span id="submit-login-text">Sign In to Admin Console</span>
             </button>
           </div>
         </form>
@@ -1220,13 +1389,54 @@ export class ModalManager {
       const form = dialog.querySelector("#form-login");
       const emailInput = dialog.querySelector("#login-email");
       const pwdInput = dialog.querySelector("#login-password");
+      const rememberCheckbox = dialog.querySelector("#modal-login-remember");
       const togglePwd = dialog.querySelector("#btn-toggle-pwd");
       const pwdIcon = dialog.querySelector("#pwd-icon");
       const errorBox = dialog.querySelector("#login-error-alert");
       const errorText = dialog.querySelector("#login-error-text");
       const submitBtn = dialog.querySelector("#btn-submit-login");
       const submitText = dialog.querySelector("#submit-login-text");
-      const quickBtns = dialog.querySelectorAll(".quick-role-btn");
+      const emailError = dialog.querySelector("#login-email-error");
+      const emailErrorText = dialog.querySelector("#login-email-error-text");
+
+      // Email validation logic on blur and submit
+      const validateEmail = (showError = true) => {
+        const val = emailInput ? emailInput.value.trim() : "";
+        if (!val) {
+          if (showError && emailError && emailErrorText) {
+            emailErrorText.textContent = "Admin email or username is required.";
+            emailError.style.display = "flex";
+            if (emailInput) emailInput.style.borderColor = "#ef4444";
+            if (window.lucide) window.lucide.createIcons({ root: emailError });
+          }
+          return false;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(val)) {
+          if (showError && emailError && emailErrorText) {
+            emailErrorText.textContent = "Please enter a valid email address.";
+            emailError.style.display = "flex";
+            if (emailInput) emailInput.style.borderColor = "#ef4444";
+            if (window.lucide) window.lucide.createIcons({ root: emailError });
+          }
+          return false;
+        }
+
+        if (emailError) emailError.style.display = "none";
+        if (emailInput) emailInput.style.borderColor = "var(--border-subtle)";
+        return true;
+      };
+
+      emailInput?.addEventListener("blur", () => {
+        validateEmail(true);
+      });
+
+      emailInput?.addEventListener("input", () => {
+        if (emailError && emailError.style.display !== "none") {
+          validateEmail(true);
+        }
+      });
 
       // Password visibility toggle
       if (togglePwd && pwdInput) {
@@ -1240,38 +1450,29 @@ export class ModalManager {
         });
       }
 
-      // Quick role autofill
-      quickBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          quickBtns.forEach((b) => b.classList.remove("active-admin"));
-          btn.classList.add("active-admin");
-          const email = btn.dataset.email;
-          const role = btn.dataset.role;
-          emailInput.value = email;
-          pwdInput.value = "Password123!";
-          submitText.textContent = `Sign In as ${role}`;
-        });
-      });
-
-      emailInput.addEventListener("input", () => {
-        submitText.textContent = "Sign In";
-      });
-
       // Submit handler
-      form.addEventListener("submit", async (e) => {
+      form?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        errorBox.style.display = "none";
-        submitBtn.disabled = true;
-        submitText.textContent = "Authenticating...";
+        if (errorBox) errorBox.style.display = "none";
 
-        const email = emailInput.value.trim();
-        const password = pwdInput.value;
+        const isEmailValid = validateEmail(true);
+        if (!isEmailValid) {
+          emailInput?.focus();
+          return;
+        }
 
-        const result = await store.login(email, password);
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitText) submitText.textContent = "Authenticating...";
+
+        const email = emailInput?.value.trim();
+        const password = pwdInput?.value;
+        const rememberMe = Boolean(rememberCheckbox?.checked);
+
+        const result = await store.login(email, password, null, rememberMe);
 
         if (result.success) {
           this.close();
-          toast.success(`Welcome back, ${result.user.name}! Authenticated as [${result.user.role}].`);
+          toast.success(`Welcome back, ${result.user.name}! Administrator session active.`);
           try {
             confetti({
               particleCount: 40,
@@ -1279,15 +1480,85 @@ export class ModalManager {
               origin: { y: 0.8 }
             });
           } catch (err) {}
+
+          // Navigate to existing Admin Dashboard
+          if (typeof onSuccess === "function") {
+            onSuccess("dashboard");
+          } else {
+            window.location.hash = "#dashboard";
+          }
         } else {
-          errorBox.style.display = "flex";
-          errorText.textContent = result.message || "Invalid credentials.";
-          submitBtn.disabled = false;
-          submitText.textContent = "Sign In";
+          if (errorBox) errorBox.style.display = "flex";
+          if (errorText) errorText.textContent = result.message || "Invalid administrator credentials.";
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = "Sign In to Admin Console";
           if (window.lucide) window.lucide.createIcons({ root: errorBox });
         }
       });
-    });
+    }, "modal-sm");
+  }
+
+  // --- Modern Sign Out Confirmation Modal ---
+  openSignOutConfirmModal(onConfirm) {
+    const user = store.getCurrentUser ? store.getCurrentUser() : null;
+    const name = user?.name || "ADITYA MAURYA";
+    const email = user?.email || "adityamaurya@retailhub.in";
+    const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2) || "AM";
+
+    const content = `
+      <div class="confirm-dialog-content">
+        <button type="button" class="btn-icon btn-modal-close" style="position: absolute; top: 12px; right: 14px;" title="Close">&times;</button>
+        
+        <div class="confirm-icon-badge danger">
+          <i data-lucide="log-out"></i>
+        </div>
+
+        <h3 class="confirm-title">Sign Out of Stockora?</h3>
+        
+        <p class="confirm-description">
+          Are you sure you want to end your active administrator session? You will need to enter your credentials to access the console again.
+        </p>
+
+        <div class="confirm-user-card">
+          <div class="user-avatar-initials" style="width: 36px; height: 36px; font-size: 0.88rem; font-weight: 700; background: var(--color-primary, #3b82f6); color: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${initials}
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div class="font-bold text-main" style="font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</div>
+            <div class="text-muted text-xs" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${email}</div>
+          </div>
+          <span class="badge badge-subtle" style="font-size: 0.68rem; text-transform: uppercase;">Admin</span>
+        </div>
+
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-signout">Cancel</button>
+          <button type="button" class="btn btn-danger" id="btn-confirm-signout">
+            <i data-lucide="log-out"></i>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.open(content, (dialog) => {
+      const cancelBtn = dialog.querySelector("#btn-cancel-signout");
+      const confirmBtn = dialog.querySelector("#btn-confirm-signout");
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+          this.close();
+        });
+      }
+
+      if (confirmBtn) {
+        confirmBtn.addEventListener("click", () => {
+          this.close();
+          if (typeof onConfirm === "function") {
+            onConfirm();
+          }
+        });
+      }
+    }, "modal-confirm");
   }
 }
 

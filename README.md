@@ -508,7 +508,7 @@ To guarantee zero overselling under high concurrency:
 | **Supplier Manager** | `4` | Supplier registry, vendor catalog, and purchase order management |
 
 #### Pre-Configured Test Accounts (Password: `Password123!`):
-* Admin: `admin@retailhub.in`
+* Admin: `adityamaurya@retailhub.in` (ADITYA MAURYA)
 * Inventory Manager: `inventory@retailhub.in`
 * Sales Manager: `sales@retailhub.in`
 * Supplier Manager: `supplier@retailhub.in`
@@ -657,6 +657,58 @@ npm run preview -- --port 4173
 # Run automated algorithmic unit test suite
 node --test tests/algorithms.test.js
 ```
+
+---
+
+## 11. Cloud Deployment to Render (render.com)
+
+Stockora is fully engineered for zero-friction cloud deployment on [Render](https://render.com). It runs as a **unified full-stack architecture** (Express backend serving both `/api` REST endpoints and the pre-compiled Vite frontend SPA) connected to a managed **Render PostgreSQL** database.
+
+### 11.1 Method 1: Automated Blueprint Deployment (Recommended)
+This repository includes a production-ready [`render.yaml`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/render.yaml) specification:
+1. Commit and push your code to your GitHub repository:
+   ```bash
+   git add .
+   git commit -m "feat: configure unified Render deployment and PostgreSQL blueprint"
+   git push origin main
+   ```
+2. Navigate to [dashboard.render.com](https://dashboard.render.com) and click **New +** &rarr; **Blueprint**.
+3. Select and connect your repository (`retail-inventory-management-system`).
+4. Render automatically parses `render.yaml`, provisions the `stockora-postgres` database instance, wires `DATABASE_URL`, generates `JWT_SECRET`, and compiles the frontend.
+5. Click **Apply**. Within ~2 minutes, your live production instance is online!
+
+### 11.2 Method 2: Manual Dashboard Deployment
+If configuring manually via the Render UI:
+
+#### Step 1: Provision Managed PostgreSQL
+1. On Render, click **New +** &rarr; **PostgreSQL**.
+2. **Name**: `stockora-postgres`
+3. **Database**: `retail_inventory_db`
+4. **User**: `stockora_user`
+5. **Region**: `Oregon (US West)` (or your preferred region)
+6. **Plan**: `Free`
+7. Click **Create Database** and copy the **Internal Database URL** (e.g., `postgresql://stockora_user:...@dpg-...-a/retail_inventory_db`).
+
+#### Step 2: Provision Web Service
+1. Click **New +** &rarr; **Web Service** and connect your repository.
+2. Configure settings:
+   * **Runtime**: `Node`
+   * **Region**: *Same as PostgreSQL instance* (e.g. `Oregon`)
+   * **Branch**: `main`
+   * **Build Command**: `npm install && npm run build`
+   * **Start Command**: `npm run init-db && npm start`
+   * **Plan**: `Free`
+3. Under **Environment Variables**, add:
+   * `NODE_ENV` = `production`
+   * `DATABASE_URL` = *(Paste the Internal Database URL from Step 1)*
+   * `JWT_SECRET` = *(Generate or enter a 32+ character random string)*
+4. Click **Deploy Web Service**.
+
+### 11.3 Production Architecture Highlights
+* **Zero CORS Latency**: Both API and static frontend assets are served from the same origin.
+* **Resilient Cloud DB Initialization**: `npm run init-db` runs automatically before the web server starts, applying [`database/schema.sql`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/database/schema.sql) and idempotent [`database/seed.sql`](file:///c:/Users/ASUS/OneDrive/Desktop/P_022/database/seed.sql) with SSL enabled.
+* **SPA Routing Fallback**: Any client-side route (`/inventory`, `/orders`, `/dashboard`, etc.) automatically falls back to `index.html`.
+* **Sleep & Cold-Start Immunity**: Stockora's client-side data store automatically provides instant offline caching, ensuring visitors never experience a broken UI while free-tier cloud containers wake up.
 
 ---
 

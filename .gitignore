@@ -44,3 +44,8 @@ desktop.ini
 *.backup
 *.sqlite
 *.db
+
+# Archives and scratch files
+scratch/
+*.zip
+

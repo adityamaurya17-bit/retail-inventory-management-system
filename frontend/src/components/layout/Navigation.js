@@ -1,7 +1,8 @@
 import { store } from "../../state/store.js";
 import { modals } from "../modals/ModalManager.js";
 import { toast } from "../toast/Toast.js";
-
+import { commandPalette } from "../common/CommandPalette.js";
+import { renderRimsLogoMark } from "../brand/RimsLogo.js";
 
 /**
  * Enterprise Navigation Sidebar (Shopify / Stripe / Amazon Seller Central inspired)
@@ -11,6 +12,7 @@ export function renderSidebar(currentTab, onTabChange) {
   const salesOrders = store.getSalesOrders();
   const pendingOrders = salesOrders.filter((o) => o.status !== "Delivered" && o.status !== "Dispatched").length;
   const dbStatus = store.getDbStatus ? store.getDbStatus() : { connected: false };
+  const isCollapsed = localStorage.getItem("rims_sidebar_collapsed") === "true";
 
   let lowStockCount = 0;
   products.forEach((p) => {
@@ -18,77 +20,40 @@ export function renderSidebar(currentTab, onTabChange) {
     if (summary.onHand <= p.reorderPoint) lowStockCount++;
   });
 
-  const navGroups = [
+  const operationalNav = [
     {
-      group: "OVERVIEW",
+      group: "INVENTORY & WAREHOUSES",
       items: [
-        { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" }
+        { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
+        { id: "products", label: "Products", icon: "package" },
+        { id: "inventory", label: "Inventory", icon: "boxes" },
+        { id: "warehouses", label: "Warehouses", icon: "warehouse" },
+        { id: "transfers", label: "Transfers", icon: "arrow-left-right" }
       ]
     },
     {
-      group: "CATALOG",
+      group: "ORDERS & PROCUREMENT",
       items: [
-        { id: "products", label: "Products (PIM)", icon: "package" },
-        { id: "categories", label: "Categories", icon: "tags" }
-      ]
-    },
-    {
-      group: "INVENTORY",
-      items: [
-        { id: "inventory", label: "Stock Levels", icon: "boxes" },
-        { id: "warehouses", label: "Warehouses & Bins", icon: "warehouse" },
-        { id: "transfers", label: "Stock Transfers", icon: "arrow-left-right" },
-        { id: "stock-alerts", label: "Stock Alerts", icon: "alert-triangle", badge: lowStockCount > 0 ? lowStockCount : null, badgeClass: "badge-danger" }
-      ]
-    },
-    {
-      group: "SALES",
-      items: [
-        { id: "orders", label: "Orders & Fulfillment", icon: "shopping-bag", badge: pendingOrders > 0 ? pendingOrders : null, badgeClass: "badge-accent" },
-        { id: "customers", label: "Customers", icon: "users" }
-      ]
-    },
-    {
-      group: "PROCUREMENT",
-      items: [
-        { id: "suppliers", label: "Suppliers Directory", icon: "truck" },
-        { id: "purchase-orders", label: "Purchase Orders", icon: "file-text" }
-      ]
-    },
-    {
-      group: "ANALYTICS",
-      items: [
-        { id: "analytics", label: "Reports & Valuation", icon: "bar-chart-3" }
-      ]
-    },
-    {
-      group: "PROJECT & SPECS",
-      items: [
-        { id: "agile", label: "Agile Capstone (8 Epics)", icon: "git-merge" },
-        { id: "architecture", label: "C4 Architecture & Algos", icon: "cpu" }
+        { id: "orders", label: "Orders", icon: "shopping-bag", badge: pendingOrders > 0 ? pendingOrders : null, badgeClass: "badge-accent" },
+        { id: "suppliers", label: "Suppliers", icon: "truck" },
+        { id: "purchase-orders", label: "Purchase Orders", icon: "file-check" }
       ]
     }
   ];
 
   return `
-    <aside class="app-sidebar" id="app-sidebar">
-      <!-- Organization / Brand Header -->
-      <div class="sidebar-brand">
-        <div class="brand-badge-icon">
-          <i data-lucide="boxes"></i>
+    <aside class="app-sidebar ${isCollapsed ? "collapsed" : ""}" id="app-sidebar">
+      <!-- Organization / Brand Header (Matches Header Height: 56px) -->
+      <div class="sidebar-brand" id="sidebar-brand-header">
+        <div class="brand-badge-icon" title="Stockora">
+          <img src="/stockora-icon.png" alt="Stockora" />
         </div>
-        <div class="brand-details">
-          <div class="brand-company">RIMS Platform</div>
-          <div class="brand-instance">
-            <span class="instance-dot"></span>
-            <span>Retail Operations v1.0</span>
-          </div>
-        </div>
+        <span class="brand-company">Stockora</span>
       </div>
 
       <!-- Navigation Tree -->
       <nav class="sidebar-nav">
-        ${navGroups
+        ${operationalNav
           .map(
             (grp) => `
           <div class="nav-section">
@@ -97,8 +62,9 @@ export function renderSidebar(currentTab, onTabChange) {
               ${grp.items
                 .map((item) => {
                   const isActive = currentTab === item.id || 
-                    (item.id === "categories" && currentTab === "categories") ||
-                    (item.id === "inventory" && currentTab === "inventory");
+                    (item.id === "inventory" && currentTab === "inventory") ||
+                    (item.id === "stock-alerts" && currentTab === "stock-alerts") ||
+                    (item.id === "analytics" && currentTab === "analytics");
                   return `
                     <button type="button" class="nav-btn ${isActive ? "active" : ""}" data-tab="${item.id}" title="${item.label}">
                       <i data-lucide="${item.icon}"></i>
@@ -134,7 +100,8 @@ export function renderSidebar(currentTab, onTabChange) {
  * Top App Header Bar
  */
 export function renderTopHeader(currentTab, onTabChange) {
-  const currentUser = store.getCurrentUser ? store.getCurrentUser() : { role: "Admin", name: "Aarav Sharma" };
+  const isCollapsed = localStorage.getItem("rims_sidebar_collapsed") === "true";
+  const currentUser = store.getCurrentUser ? store.getCurrentUser() : { role: "Warehouse & Inventory Management", name: "ADITYA MAURYA" };
   const products = store.getProducts();
   const salesOrders = store.getSalesOrders();
   const lowStockCount = products.filter((p) => {
@@ -143,55 +110,34 @@ export function renderTopHeader(currentTab, onTabChange) {
   }).length;
   const pendingOrders = salesOrders.filter((o) => o.status !== "Delivered" && o.status !== "Dispatched").length;
 
-  const breadcrumbMap = {
-    dashboard: "Overview / Executive Dashboard",
-    products: "Catalog / Product Information Management (PIM)",
-    categories: "Catalog / Taxonomy & Categories",
-    inventory: "Inventory / Multi-Warehouse Balances",
-    warehouses: "Inventory / Facilities & Storage Bins",
-    transfers: "Inventory / Inter-Warehouse Transfers",
-    "stock-alerts": "Inventory / Stockout Alerts & Radar",
-    orders: "Sales / Omnichannel Order Fulfillment",
-    customers: "Sales / Customer Master Directory",
-    suppliers: "Procurement / Supplier Vendor Registry",
-    "purchase-orders": "Procurement / Purchase Orders & GRN",
-    analytics: "Analytics / Valuation & Financial Reports",
-    agile: "Project / Agile Delivery (8 Epics / 15 Sprints)",
-    architecture: "Project / C4 Architecture & Core Algorithms"
-  };
-
-  const breadcrumb = breadcrumbMap[currentTab] || "Retail Operations / Dashboard";
-
   return `
     <header class="app-top-header" id="app-top-header">
       <div class="header-left-section">
+        <!-- Desktop Header Sidebar Toggle -->
+        <button type="button" class="btn-icon header-sidebar-toggle desktop-only" id="btn-header-sidebar-toggle" title="${isCollapsed ? "Open Sidebar (Ctrl+B)" : "Close Sidebar (Ctrl+B)"}" aria-label="Toggle Navigation Sidebar">
+          <i data-lucide="${isCollapsed ? "panel-left-open" : "panel-left-close"}"></i>
+        </button>
+
         <!-- Mobile Sidebar Toggle -->
         <button type="button" class="btn-icon mobile-menu-toggle" id="btn-toggle-sidebar" title="Toggle Navigation Sidebar">
           <i data-lucide="menu"></i>
         </button>
-
-        <!-- Breadcrumb / Section Identity -->
-        <div class="header-breadcrumb">
-          <i data-lucide="compass" class="breadcrumb-icon"></i>
-          <span>${breadcrumb}</span>
-        </div>
       </div>
 
-      <!-- Center Search -->
+      <!-- Modern Search Bar -->
       <div class="header-center-section">
-        <div class="global-search-bar" id="global-search-wrapper">
-          <i data-lucide="search" class="search-input-icon"></i>
+        <form class="top-nav-search-bar" id="top-nav-search-form" role="search" onsubmit="return false;">
+          <i data-lucide="search" class="top-nav-search-icon"></i>
           <input 
-            type="text" 
-            id="global-search-input" 
-            placeholder="Search products, SKU, orders, suppliers, or press / to focus..." 
-            autocomplete="off"
+            type="search" 
+            id="top-nav-search-input" 
+            class="top-nav-search-input" 
+            placeholder="Search products, inventory, orders, suppliers..." 
+            autocomplete="off" 
+            spellcheck="false" 
+            aria-label="Search"
           />
-          <kbd class="search-shortcut-badge">/</kbd>
-
-          <!-- Search Results Dropdown -->
-          <div class="search-results-dropdown" id="search-results-dropdown" style="display: none;"></div>
-        </div>
+        </form>
       </div>
 
       <!-- Right Actions & User Profile -->
@@ -293,16 +239,16 @@ export function renderTopHeader(currentTab, onTabChange) {
         <!-- User Authentication & Profile Widget -->
         ${currentUser ? `
           <div class="header-user-widget">
-            <div class="user-pill" id="btn-user-dropdown" title="Session: ${currentUser.name} (${currentUser.role})">
-              <span class="user-avatar-initials">${currentUser.name ? currentUser.name.split(" ").map(n => n[0]).join("").slice(0, 2) : "AD"}</span>
+            <div class="user-pill" title="Administrator: ${currentUser.name} (${currentUser.email || 'adityamaurya@retailhub.in'})">
+              <span class="user-avatar-initials">${currentUser.name ? currentUser.name.split(" ").map(n => n[0]).join("").slice(0, 2) : "AM"}</span>
               <div class="user-meta desktop-only">
-                <span class="user-display-name">${currentUser.name || "Aarav Sharma"}</span>
-                <span class="user-role-label">${currentUser.role || "Admin"}</span>
+                <span class="user-display-name">${currentUser.name || "ADITYA MAURYA"}</span>
+                <span class="user-role-label">Administrator</span>
               </div>
             </div>
 
             <!-- Sign Out Icon Button -->
-            <button type="button" class="btn-icon header-logout-btn" id="btn-header-logout" title="Sign out of RIMS session">
+            <button type="button" class="btn-icon header-logout-btn" id="btn-header-logout" title="Sign out of Stockora session">
               <i data-lucide="log-out"></i>
             </button>
           </div>
@@ -328,14 +274,10 @@ export function setupNavigationEvents(onTabChange) {
       if (!targetTab) return;
 
       // Handle aliases
-      if (targetTab === "categories" || targetTab === "inventory" || targetTab === "stock-alerts") {
+      if (targetTab === "categories") {
         onTabChange("products");
-      } else if (targetTab === "customers") {
-        onTabChange("orders");
-      } else if (targetTab === "purchase-orders") {
-        onTabChange("suppliers");
-      } else if (targetTab === "analytics") {
-        onTabChange("architecture");
+      } else if (targetTab === "stock-alerts") {
+        onTabChange("inventory");
       } else {
         onTabChange(targetTab);
       }
@@ -348,12 +290,22 @@ export function setupNavigationEvents(onTabChange) {
     });
   });
 
-  // Mobile sidebar toggle
+  // Mobile sidebar toggle & backdrop
   const toggleBtn = document.getElementById("btn-toggle-sidebar");
-  if (toggleBtn) {
+  const mobileBackdrop = document.getElementById("sidebar-mobile-backdrop");
+  const sidebar = document.getElementById("app-sidebar");
+
+  if (toggleBtn && sidebar) {
     toggleBtn.addEventListener("click", () => {
-      const sidebar = document.getElementById("app-sidebar");
-      if (sidebar) sidebar.classList.toggle("mobile-open");
+      const isOpen = sidebar.classList.toggle("mobile-open");
+      if (mobileBackdrop) mobileBackdrop.classList.toggle("active", isOpen);
+    });
+  }
+
+  if (mobileBackdrop && sidebar) {
+    mobileBackdrop.addEventListener("click", () => {
+      sidebar.classList.remove("mobile-open");
+      mobileBackdrop.classList.remove("active");
     });
   }
 
@@ -431,118 +383,96 @@ export function setupNavigationEvents(onTabChange) {
   // User Profile Login / Logout
   const loginHeaderBtn = document.getElementById("btn-header-login");
   if (loginHeaderBtn) {
-    loginHeaderBtn.addEventListener("click", () => modals.openLoginModal());
-  }
-
-  const userDropdownBtn = document.getElementById("btn-user-dropdown");
-  if (userDropdownBtn) {
-    userDropdownBtn.addEventListener("click", () => modals.openLoginModal());
+    loginHeaderBtn.addEventListener("click", () => onTabChange("login"));
   }
 
   const logoutBtn = document.getElementById("btn-header-logout");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      const user = store.getCurrentUser ? store.getCurrentUser() : null;
-      const userName = user ? user.name : "User";
-      if (confirm(`Sign out ${userName} from RIMS session?`)) {
+      modals.openSignOutConfirmModal(() => {
         store.logout();
-        toast.info("You have signed out of your session.");
-        modals.openLoginModal();
+        toast.info("Signed out of Administrator Console.");
+        window.location.hash = "#home";
+        onTabChange("home");
+      });
+    });
+  }
+
+  // Seamless Full Sidebar Open / Close Handler
+  function toggleSidebar(forceState) {
+    const sidebar = document.getElementById("app-sidebar");
+    if (!sidebar) return;
+    const isNowCollapsed = forceState !== undefined 
+      ? forceState 
+      : !sidebar.classList.contains("collapsed");
+    
+    if (isNowCollapsed) {
+      sidebar.classList.add("collapsed");
+    } else {
+      sidebar.classList.remove("collapsed");
+    }
+    localStorage.setItem("rims_sidebar_collapsed", isNowCollapsed ? "true" : "false");
+
+    // Update Header Sidebar Toggle Button
+    const headerToggleBtn = document.getElementById("btn-header-sidebar-toggle");
+    if (headerToggleBtn) {
+      headerToggleBtn.title = isNowCollapsed ? "Open Sidebar (Ctrl+B)" : "Close Sidebar (Ctrl+B)";
+      headerToggleBtn.innerHTML = `<i data-lucide="${isNowCollapsed ? "panel-left-open" : "panel-left-close"}"></i>`;
+    }
+
+    if (window.lucide && headerToggleBtn) {
+      window.lucide.createIcons({ root: headerToggleBtn });
+    }
+  }
+
+
+  // Header Desktop Sidebar Toggle
+  const headerToggleBtn = document.getElementById("btn-header-sidebar-toggle");
+  if (headerToggleBtn) {
+    headerToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleSidebar();
+    });
+  }
+
+  // Global Ctrl+B / Cmd+B keyboard shortcut for sidebar toggle
+  if (window._rimsSidebarKeyHandler) {
+    window.removeEventListener("keydown", window._rimsSidebarKeyHandler);
+  }
+  window._rimsSidebarKeyHandler = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.isContentEditable);
+      if (!isInput) {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    }
+  };
+  window.addEventListener("keydown", window._rimsSidebarKeyHandler);
+
+  // Global Top Search Input
+  commandPalette.setTabChangeHandler(onTabChange);
+  const searchInput = document.getElementById("top-nav-search-input");
+  const searchForm = document.getElementById("top-nav-search-form");
+
+  if (searchInput) {
+    searchInput.addEventListener("click", (e) => {
+      e.stopPropagation();
+      commandPalette.open(searchInput.value || "");
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commandPalette.open(searchInput.value || "");
       }
     });
   }
 
-  // Global Universal Search & "/" keyboard shortcut
-  const searchInput = document.getElementById("global-search-input");
-  const searchDropdown = document.getElementById("search-results-dropdown");
-
-  if (searchInput && searchDropdown) {
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "/" && document.activeElement !== searchInput && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
-        e.preventDefault();
-        searchInput.focus();
-      }
-    });
-
-    searchInput.addEventListener("input", (e) => {
-      const query = e.target.value.toLowerCase().trim();
-      if (!query) {
-        searchDropdown.style.display = "none";
-        searchDropdown.innerHTML = "";
-        return;
-      }
-
-      const products = store.getProducts();
-      const orders = store.getSalesOrders();
-      const suppliers = store.getSuppliers();
-
-      const matchedProducts = products.filter(p => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query)).slice(0, 4);
-      const matchedOrders = orders.filter(o => o.orderNumber.toLowerCase().includes(query) || o.customer.name.toLowerCase().includes(query)).slice(0, 3);
-      const matchedSuppliers = suppliers.filter(s => s.name.toLowerCase().includes(query)).slice(0, 2);
-
-      if (matchedProducts.length === 0 && matchedOrders.length === 0 && matchedSuppliers.length === 0) {
-        searchDropdown.innerHTML = `<div class="search-empty-state">No matching records found for "${e.target.value}"</div>`;
-      } else {
-        searchDropdown.innerHTML = `
-          ${matchedProducts.length > 0 ? `
-            <div class="search-group-title">Products (${matchedProducts.length})</div>
-            ${matchedProducts.map(p => `
-              <div class="search-result-row search-prod-item" data-tab="products">
-                <i data-lucide="package"></i>
-                <div class="search-row-details">
-                  <span class="search-row-title">${p.name}</span>
-                  <span class="search-row-meta">${p.sku} &bull; ${p.category} &bull; $${p.sellingPrice.toFixed(2)}</span>
-                </div>
-              </div>
-            `).join("")}
-          ` : ""}
-
-          ${matchedOrders.length > 0 ? `
-            <div class="search-group-title">Orders (${matchedOrders.length})</div>
-            ${matchedOrders.map(o => `
-              <div class="search-result-row search-order-item" data-tab="orders">
-                <i data-lucide="shopping-bag"></i>
-                <div class="search-row-details">
-                  <span class="search-row-title">${o.orderNumber} - ${o.customer.name}</span>
-                  <span class="search-row-meta">$${o.totalAmount.toFixed(2)} &bull; Status: ${o.status}</span>
-                </div>
-              </div>
-            `).join("")}
-          ` : ""}
-
-          ${matchedSuppliers.length > 0 ? `
-            <div class="search-group-title">Suppliers (${matchedSuppliers.length})</div>
-            ${matchedSuppliers.map(s => `
-              <div class="search-result-row search-supp-item" data-tab="suppliers">
-                <i data-lucide="truck"></i>
-                <div class="search-row-details">
-                  <span class="search-row-title">${s.name}</span>
-                  <span class="search-row-meta">Lead Time: ${s.leadTimeDays}d &bull; Rating: ${s.rating}★</span>
-                </div>
-              </div>
-            `).join("")}
-          ` : ""}
-        `;
-
-        if (window.lucide) window.lucide.createIcons({ root: searchDropdown });
-
-        searchDropdown.querySelectorAll(".search-result-row").forEach(row => {
-          row.addEventListener("click", () => {
-            searchDropdown.style.display = "none";
-            searchInput.value = "";
-            const tab = row.dataset.tab;
-            if (tab) onTabChange(tab);
-          });
-        });
-      }
-
-      searchDropdown.style.display = "block";
-    });
-
-    document.addEventListener("click", (e) => {
-      if (searchDropdown && !searchDropdown.contains(e.target) && e.target !== searchInput) {
-        searchDropdown.style.display = "none";
-      }
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (searchInput) commandPalette.open(searchInput.value || "");
     });
   }
 
@@ -554,7 +484,7 @@ export function setupNavigationEvents(onTabChange) {
       if (status.connected) {
         toast.success(`PostgreSQL 18: Active on localhost:5432 (retail_inventory_db)`);
       } else {
-        toast.info("Connecting to PostgreSQL API at http://localhost:5000/api...");
+        toast.info("Connecting to PostgreSQL API...");
         await store.syncWithBackend();
       }
     });
