@@ -11,8 +11,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: npm run init-db && npm start
+    buildCommand: npm install --include=dev && npm run build && npm run init-db
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
